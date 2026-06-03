@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page {
+    size: A4;
+    margin: 20mm 18mm 22mm 18mm;
+    @top-right {
+      content: "{{ title }}";
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 8pt;
+      color: #94a3b8;
+    }
+    @bottom-center {
+      content: counter(page) " / " counter(pages);
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 8pt;
+      color: #94a3b8;
+    }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 10pt;
+    color: #1e293b;
+    line-height: 1.6;
+    background: #ffffff;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #1d4ed8 100%);
+    color: white;
+    padding: 28px 30px 22px;
+    border-radius: 10px;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -20px; right: -20px;
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+  }
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: -30px; right: 60px;
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+  }
+  .header-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    color: #93c5fd;
+    font-size: 7pt;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-bottom: 10px;
+    border: 1px solid rgba(147,197,253,0.3);
+  }
+  .header h1 {
+    font-size: 22pt;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 14px;
+    line-height: 1.2;
+  }
+  .header-meta {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 8.5pt;
+    color: rgba(255,255,255,0.8);
+  }
+  .meta-icon {
+    width: 14px;
+    height: 14px;
+    opacity: 0.7;
+  }
+  .meta-label {
+    color: rgba(255,255,255,0.5);
+    font-size: 7pt;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .meta-value {
+    color: white;
+    font-weight: 600;
+  }
+
+  /* ── SUMMARY CARD ── */
+  .summary-card {
+    background: #f0f9ff;
+    border: 1.5px solid #bae6fd;
+    border-left: 5px solid #0284c7;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+  }
+  .summary-card p {
+    font-size: 10.5pt;
+    color: #0c4a6e;
+    line-height: 1.7;
+    font-style: italic;
+  }
+
+  /* ── SECTION ── */
+  .section {
+    margin-bottom: 20px;
+    break-inside: avoid;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding-bottom: 7px;
+    border-bottom: 2px solid #e2e8f0;
+  }
+  .section-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-blue   { background: #3b82f6; }
+  .dot-green  { background: #10b981; }
+  .dot-orange { background: #f59e0b; }
+  .dot-red    { background: #ef4444; }
+  .dot-purple { background: #8b5cf6; }
+  .dot-gray   { background: #64748b; }
+
+  .section-title {
+    font-size: 11pt;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.2px;
+  }
+  .section-count {
+    margin-left: auto;
+    background: #f1f5f9;
+    color: #64748b;
+    font-size: 7.5pt;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+  }
+
+  /* ── TOPIC LIST ── */
+  .topic-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .topic-chip {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+    font-size: 8.5pt;
+    font-weight: 500;
+    padding: 4px 12px;
+    border-radius: 20px;
+  }
+
+  /* ── DECISION LIST ── */
+  .decision-list {
+    list-style: none;
+  }
+  .decision-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 12px;
+    margin-bottom: 4px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 6px;
+    font-size: 9.5pt;
+    color: #14532d;
+  }
+  .decision-list li::before {
+    content: '✓';
+    color: #16a34a;
+    font-weight: 700;
+    font-size: 10pt;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* ── ACTION TABLE ── */
+  .action-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9pt;
+  }
+  .action-table thead tr {
+    background: #f8fafc;
+  }
+  .action-table th {
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 7.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #64748b;
+    border-bottom: 2px solid #e2e8f0;
+  }
+  .action-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+    vertical-align: top;
+  }
+  .action-table tr:last-child td { border-bottom: none; }
+  .action-table tr:nth-child(even) td { background: #fafafa; }
+  .action-table tbody tr:hover td { background: #fff7ed; }
+  .task-cell { font-weight: 500; color: #0f172a; }
+  .resp-cell {
+    color: #4f46e5;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .deadline-chip {
+    display: inline-block;
+    background: #fef3c7;
+    border: 1px solid #fcd34d;
+    color: #92400e;
+    font-size: 7.5pt;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+    white-space: nowrap;
+  }
+
+  /* ── QUESTIONS ── */
+  .question-list {
+    list-style: none;
+  }
+  .question-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 12px;
+    margin-bottom: 4px;
+    background: #fdf4ff;
+    border: 1px solid #e9d5ff;
+    border-radius: 6px;
+    font-size: 9.5pt;
+    color: #4a1d96;
+  }
+  .question-list li::before {
+    content: '?';
+    background: #7c3aed;
+    color: white;
+    font-weight: 700;
+    font-size: 7.5pt;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    text-align: center;
+    line-height: 16px;
+    margin-top: 2px;
+  }
+
+  /* ── NEXT MEETING ── */
+  .next-meeting-box {
+    background: #f8fafc;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-size: 10pt;
+    color: #334155;
+    font-weight: 500;
+  }
+
+  /* ── RAW NOTES ── */
+  .raw-notes-box {
+    background: #fafafa;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-family: 'Courier New', monospace;
+    font-size: 8pt;
+    color: #475569;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    break-inside: avoid;
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    margin-top: 28px;
+    padding-top: 12px;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 7.5pt;
+    color: #94a3b8;
+  }
+  .footer-brand {
+    font-weight: 700;
+    color: #1d4ed8;
+    letter-spacing: -0.3px;
+  }
+
+  /* ── EMPTY STATE ── */
+  .empty {
+    color: #94a3b8;
+    font-style: italic;
+    font-size: 9pt;
+    padding: 6px 0;
+  }
+
+  /* ── PAGE BREAKS ── */
+  .raw-notes-section { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-badge">Meeting Protokoll</div>
+  <h1>{{ title }}</h1>
+  <div class="header-meta">
+    <div class="meta-item">
+      <span class="meta-label">{{ labels.date_label }}&nbsp;</span>
+      <span class="meta-value">{{ date }}</span>
+    </div>
+    {% if participants %}
+    <div class="meta-item">
+      <span class="meta-label">{{ labels.participants_label }}&nbsp;</span>
+      <span class="meta-value">{{ participants }}</span>
+    </div>
+    {% endif %}
+    <div class="meta-item">
+      <span class="meta-label">{{ labels.generated_label }}&nbsp;</span>
+      <span class="meta-value">{{ generated }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- SUMMARY -->
+{% if structured.summary %}
+<div class="summary-card">
+  <p>{{ structured.summary }}</p>
+</div>
+{% endif %}
+
+<!-- KEY TOPICS -->
+{% if structured.key_topics %}
+<div class="section">
+  <div class="section-header">
+    <div class="section-dot dot-blue"></div>
+    <span class="section-title">{{ labels.topics_title }}</span>
+    <span class="section-count">{{ structured.key_topics | length }}</span>
+  </div>
+  <div class="topic-grid">
+    {% for topic in structured.key_topics %}
+    <span class="topic-chip">{{ topic }}</span>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- DECISIONS -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-dot dot-green"></div>
+    <span class="section-title">{{ labels.decisions_title }}</span>
+    {% if structured.decisions %}
+    <span class="section-count">{{ structured.decisions | length }}</span>
+    {% endif %}
+  </div>
+  {% if structured.decisions and structured.decisions | length > 0 %}
+  <ul class="decision-list">
+    {% for d in structured.decisions %}
+    <li>{{ d }}</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="empty">Keine Entscheidungen protokolliert.</p>
+  {% endif %}
+</div>
+
+<!-- ACTION ITEMS -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-dot dot-orange"></div>
+    <span class="section-title">{{ labels.actions_title }}</span>
+    {% if structured.action_items %}
+    <span class="section-count">{{ structured.action_items | length }}</span>
+    {% endif %}
+  </div>
+  {% if structured.action_items and structured.action_items | length > 0 %}
+  <table class="action-table">
+    <thead>
+      <tr>
+        <th style="width:50%">{{ labels.task_col }}</th>
+        <th style="width:25%">{{ labels.responsible_col }}</th>
+        <th style="width:25%">{{ labels.deadline_col }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in structured.action_items %}
+      <tr>
+        <td class="task-cell">{{ item.task }}</td>
+        <td class="resp-cell">{{ item.responsible }}</td>
+        <td><span class="deadline-chip">{{ item.deadline }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty">Keine To-Dos erfasst.</p>
+  {% endif %}
+</div>
+
+<!-- OPEN QUESTIONS -->
+{% if structured.open_questions and structured.open_questions | length > 0 %}
+<div class="section">
+  <div class="section-header">
+    <div class="section-dot dot-purple"></div>
+    <span class="section-title">{{ labels.questions_title }}</span>
+    <span class="section-count">{{ structured.open_questions | length }}</span>
+  </div>
+  <ul class="question-list">
+    {% for q in structured.open_questions %}
+    <li>{{ q }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<!-- NEXT MEETING -->
+{% if structured.next_meeting %}
+<div class="section">
+  <div class="section-header">
+    <div class="section-dot dot-gray"></div>
+    <span class="section-title">{{ labels.next_meeting_title }}</span>
+  </div>
+  <div class="next-meeting-box">{{ structured.next_meeting }}</div>
+</div>
+{% endif %}
+
+<!-- RAW NOTES -->
+{% if raw_notes %}
+<div class="section raw-notes-section">
+  <div class="section-header">
+    <div class="section-dot dot-gray"></div>
+    <span class="section-title">{{ labels.raw_notes_title }}</span>
+  </div>
+  <div class="raw-notes-box">{{ raw_notes }}</div>
+</div>
+{% endif %}
+
+<!-- FOOTER -->
+<div class="footer">
+  <span class="footer-brand">Meeting Notes Processor</span>
+  <span>KI-aufbereitet &middot; {{ generated }}</span>
+</div>
+
+</body>
+</html>
