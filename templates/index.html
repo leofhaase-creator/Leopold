@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meeting Notes Tool</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── Reset & base ─────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy:   #1B2B4B;
+      --blue:   #3D7EAA;
+      --accent: #2D9CDB;
+      --green:  #276749;
+      --light:  #EDF2F7;
+      --white:  #ffffff;
+      --text:   #1A202C;
+      --muted:  #718096;
+      --border: #E2E8F0;
+      --radius: 10px;
+      --shadow: 0 2px 12px rgba(0,0,0,.08);
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #F0F4F8;
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Top bar ──────────────────────────────────────────────────────── */
+    header {
+      background: var(--navy);
+      padding: 0 2rem;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,.3);
+    }
+    header .logo {
+      width: 32px; height: 32px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; color: white; font-size: 15px; flex-shrink: 0;
+    }
+    header h1 { color: white; font-size: 1.1rem; font-weight: 600; letter-spacing: -.01em; }
+    header .sub { color: #90B4CE; font-size: .78rem; margin-left: auto; }
+
+    /* ── Layout ───────────────────────────────────────────────────────── */
+    .layout {
+      display: grid;
+      grid-template-columns: 480px 1fr;
+      gap: 1.5rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 1.5rem;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    /* ── Cards ────────────────────────────────────────────────────────── */
+    .card {
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .card-header {
+      padding: .85rem 1.25rem;
+      font-weight: 600;
+      font-size: .85rem;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    .card-header.navy  { background: var(--navy); }
+    .card-header.blue  { background: var(--blue); }
+    .card-header.green { background: var(--green); }
+    .card-body { padding: 1.25rem; }
+
+    /* ── Form ─────────────────────────────────────────────────────────── */
+    label {
+      display: block;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: .3rem;
+      letter-spacing: .03em;
+      text-transform: uppercase;
+    }
+    input[type=text], textarea, select {
+      width: 100%;
+      border: 1.5px solid var(--border);
+      border-radius: 7px;
+      padding: .55rem .8rem;
+      font-family: inherit;
+      font-size: .9rem;
+      color: var(--text);
+      background: white;
+      transition: border-color .15s, box-shadow .15s;
+      outline: none;
+    }
+    input[type=text]:focus, textarea:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(45,156,219,.15);
+    }
+    textarea { resize: vertical; line-height: 1.55; }
+    .field { margin-bottom: 1rem; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+
+    /* ── Toggle ───────────────────────────────────────────────────────── */
+    .toggle-row {
+      display: flex; align-items: center; gap: .6rem;
+      font-size: .85rem; color: var(--muted); margin-bottom: 1rem;
+    }
+    .toggle { position: relative; display: inline-block; width: 40px; height: 22px; }
+    .toggle input { display: none; }
+    .toggle-slider {
+      position: absolute; inset: 0;
+      background: var(--border);
+      border-radius: 22px;
+      cursor: pointer;
+      transition: .2s;
+    }
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 16px; height: 16px;
+      left: 3px; top: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: .2s;
+    }
+    .toggle input:checked + .toggle-slider { background: var(--accent); }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+    /* ── Buttons ──────────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; gap: .45rem;
+      padding: .65rem 1.4rem;
+      border: none; border-radius: 8px;
+      font-family: inherit; font-size: .9rem; font-weight: 600;
+      cursor: pointer; transition: all .15s;
+    }
+    .btn-primary {
+      background: var(--accent); color: white;
+      box-shadow: 0 2px 8px rgba(45,156,219,.35);
+    }
+    .btn-primary:hover { background: #2185b8; transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-green {
+      background: var(--green); color: white;
+      box-shadow: 0 2px 8px rgba(39,103,73,.35);
+    }
+    .btn-green:hover { background: #1e5438; transform: translateY(-1px); }
+    .btn-secondary {
+      background: var(--light); color: var(--navy);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { background: #dde6ef; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; transform: none !important; }
+    .btn-row { display: flex; gap: .75rem; flex-wrap: wrap; }
+
+    /* ── Spinner ──────────────────────────────────────────────────────── */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2.5px solid rgba(255,255,255,.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading .spinner { display: block; }
+    .loading .btn-icon { display: none; }
+
+    /* ── Preview sections ─────────────────────────────────────────────── */
+    .preview-placeholder {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      min-height: 320px; gap: 1rem;
+      color: var(--muted); text-align: center;
+    }
+    .preview-placeholder svg { opacity: .3; }
+    .preview-placeholder p { font-size: .9rem; }
+
+    .section { margin-bottom: 1.5rem; }
+    .section-title {
+      font-size: .7rem; font-weight: 700; letter-spacing: .07em;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: .5rem;
+      display: flex; align-items: center; gap: .4rem;
+    }
+    .section-title::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+
+    /* summary box */
+    .summary-box {
+      background: #EBF4FB;
+      border-left: 3px solid var(--accent);
+      border-radius: 6px;
+      padding: .85rem 1rem;
+      font-size: .92rem; line-height: 1.6;
+      color: var(--text);
+    }
+
+    /* chips */
+    .chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+    .chip {
+      background: var(--light); color: var(--navy);
+      border-radius: 20px;
+      padding: .25rem .75rem;
+      font-size: .8rem; font-weight: 500;
+    }
+    .chip.absent { background: #FFF5F5; color: #C53030; }
+
+    /* bullet list */
+    .bullet-list { list-style: none; display: flex; flex-direction: column; gap: .35rem; }
+    .bullet-list li {
+      display: flex; gap: .6rem; align-items: flex-start;
+      font-size: .9rem; line-height: 1.5;
+    }
+    .bullet-list li .icon { flex-shrink: 0; margin-top: .1rem; }
+
+    /* decision items */
+    .decision {
+      background: #F0FFF4;
+      border: 1px solid #9AE6B4;
+      border-radius: 6px;
+      padding: .6rem .9rem;
+      font-size: .9rem; line-height: 1.5;
+      display: flex; gap: .5rem; align-items: flex-start;
+      margin-bottom: .35rem;
+    }
+
+    /* action items table */
+    .action-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    .action-table th {
+      background: var(--navy); color: white;
+      padding: .55rem .75rem; text-align: left;
+      font-weight: 600; font-size: .78rem;
+    }
+    .action-table th:first-child { border-radius: 6px 0 0 0; }
+    .action-table th:last-child  { border-radius: 0 6px 0 0; }
+    .action-table td {
+      padding: .55rem .75rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .action-table tr:nth-child(even) td { background: #F7FAFC; }
+    .due-badge {
+      display: inline-block;
+      background: #EBF8FF; color: #2C5282;
+      border-radius: 4px; padding: .1rem .4rem;
+      font-size: .75rem; font-weight: 600;
+    }
+
+    /* next meeting box */
+    .next-meeting {
+      background: #EBF4FB;
+      border: 1.5px solid var(--accent);
+      border-radius: 8px;
+      padding: .85rem 1.1rem;
+      font-size: .95rem; font-weight: 600; color: var(--navy);
+      display: flex; gap: .6rem; align-items: center;
+    }
+
+    /* editable fields in preview */
+    [contenteditable] {
+      outline: none;
+      border-radius: 4px;
+      padding: 1px 3px;
+      margin: -1px -3px;
+      transition: background .15s;
+      cursor: text;
+    }
+    [contenteditable]:hover { background: #EDF2F7; }
+    [contenteditable]:focus { background: #EBF4FB; box-shadow: 0 0 0 2px var(--accent); }
+
+    /* ── Toast ────────────────────────────────────────────────────────── */
+    #toast {
+      position: fixed; bottom: 1.5rem; right: 1.5rem;
+      background: var(--navy); color: white;
+      padding: .7rem 1.2rem; border-radius: 8px;
+      font-size: .85rem; font-weight: 500;
+      box-shadow: 0 4px 16px rgba(0,0,0,.2);
+      transform: translateY(60px); opacity: 0;
+      transition: all .3s ease;
+      pointer-events: none;
+      z-index: 999;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+
+    /* ── Progress bar ─────────────────────────────────────────────────── */
+    #progress-bar {
+      position: fixed; top: 58px; left: 0; right: 0;
+      height: 3px; background: transparent; z-index: 200;
+    }
+    #progress-fill {
+      height: 100%; width: 0%;
+      background: var(--accent);
+      transition: width .4s ease;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">M</div>
+  <h1>Meeting Notes Tool</h1>
+  <span class="sub">Lokale KI · GPT4All</span>
+</header>
+
+<div id="progress-bar"><div id="progress-fill"></div></div>
+<div id="toast"></div>
+
+<div class="layout">
+
+  <!-- ── LEFT: Input panel ─────────────────────────────────────────── -->
+  <div>
+    <div class="card" style="margin-bottom:1rem">
+      <div class="card-header navy">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Meeting-Notizen eingeben
+      </div>
+      <div class="card-body">
+        <div class="field">
+          <label>Rohe Notizen *</label>
+          <textarea id="notes" rows="12" placeholder="Füge hier deine Meeting-Notizen ein…
+Datum, Teilnehmer, Themen, Entscheidungen, Aufgaben…"></textarea>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label>Meeting-Titel (optional)</label>
+            <input type="text" id="override-title" placeholder="Wird automatisch erkannt">
+          </div>
+          <div class="field">
+            <label>KI-Modell</label>
+            <select id="model-name">
+              <option value="Meta-Llama-3-8B-Instruct.Q4_0.gguf">Llama 3 8B (Standard)</option>
+              <option value="orca-mini-3b-gguf2-q4_0.gguf">Orca Mini 3B (schnell)</option>
+              <option value="mistral-7b-instruct-v0.1.Q4_0.gguf">Mistral 7B</option>
+              <option value="gpt4all-falcon-newbpe-q4_0.gguf">Falcon</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <label class="toggle">
+            <input type="checkbox" id="skip-ai">
+            <span class="toggle-slider"></span>
+          </label>
+          <span>Nur Regex-Parser (kein KI-Modell laden)</span>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" id="process-btn" onclick="processNotes()">
+            <span class="btn-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </span>
+            <div class="spinner"></div>
+            Notizen verarbeiten
+          </button>
+          <button class="btn btn-secondary" onclick="loadSample()">Beispiel laden</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick tips -->
+    <div class="card" style="border: 1.5px dashed var(--border); box-shadow: none; background: #FAFBFC;">
+      <div class="card-body" style="padding: 1rem">
+        <p style="font-size:.78rem; color: var(--muted); line-height:1.7">
+          <strong style="color:var(--navy)">Tipp:</strong>
+          Notizen können als Fließtext, Stichpunkte oder eine Mischung sein.
+          Je mehr Kontext du angibst (Datum, Teilnehmer, Aufgaben), desto besser das Ergebnis.
+          Die Vorschau rechts ist direkt bearbeitbar – Klick auf jeden Text zum Ändern.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RIGHT: Preview + Download ─────────────────────────────────── -->
+  <div>
+    <div class="card">
+      <div class="card-header blue">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        Strukturierte Vorschau
+        <div style="margin-left:auto; display:flex; gap:.5rem;" id="pdf-btn-row" class="hidden">
+          <button class="btn btn-green" onclick="downloadPDF()" id="pdf-btn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            PDF herunterladen
+          </button>
+        </div>
+      </div>
+      <div class="card-body" id="preview-body">
+        <div class="preview-placeholder">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+          <p>Notizen eingeben und auf <strong>„Notizen verarbeiten"</strong> klicken.<br>Die KI strukturiert dein Meeting automatisch.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let currentData = null;
+
+  const SAMPLE = `Datum: 3. Juni 2026
+Uhrzeit: 10:00 - 11:30 Uhr
+Ort: Konferenzraum B2
+Projekt: Website-Relaunch Q3
+
+Teilnehmer: Anna Berger (Projektleiterin), Tom Fischer (Entwicklung), Sara Meier (Design), Klaus Hoffmann (Marketing)
+Entschuldigt: Peter Schulz (Vertrieb)
+
+Wir haben den aktuellen Stand des Website-Relaunches besprochen. Tom hat erklärt, dass das neue CMS-Backend fertig ist, aber noch Tests ausstehen. Sara hat die neuen Designs präsentiert – positives Feedback, aber Klaus wünscht sich eine auffälligere Call-to-Action-Sektion auf der Startseite.
+
+Es gab eine kurze Diskussion über das Budget für externe Stockfotos. Anna hat entschieden, dass wir maximal 500€ ausgeben und prioritär eigene Fotos nutzen.
+
+Tom soll bis zum 10. Juni die Backend-Tests abschließen. Sara überarbeitet die Startseite bis zum 7. Juni. Klaus soll bis 5. Juni eine Liste mit 5 CTA-Texten liefern.
+
+Nächstes Meeting: 17. Juni, gleiche Uhrzeit. Staging-Umgebung soll stehen.
+
+Offene Frage: SEO-Agentur anfragen – Anna klärt das bis Ende der Woche.`;
+
+  function loadSample() {
+    document.getElementById('notes').value = SAMPLE;
+    toast('Beispiel-Notizen geladen');
+  }
+
+  function setProgress(pct) {
+    document.getElementById('progress-fill').style.width = pct + '%';
+  }
+
+  async function processNotes() {
+    const notes = document.getElementById('notes').value.trim();
+    if (!notes) { toast('Bitte zuerst Notizen eingeben.', true); return; }
+
+    const btn = document.getElementById('process-btn');
+    btn.disabled = true;
+    btn.classList.add('loading');
+    setProgress(20);
+
+    const formData = new FormData();
+    formData.append('notes', notes);
+    formData.append('model_name', document.getElementById('model-name').value);
+    formData.append('skip_ai', document.getElementById('skip-ai').checked);
+
+    try {
+      setProgress(50);
+      const resp = await fetch('/process', { method: 'POST', body: formData });
+      setProgress(80);
+      if (!resp.ok) throw new Error(`Server-Fehler: ${resp.status}`);
+      const data = await resp.json();
+      currentData = data;
+      // override title if user specified one
+      const ovTitle = document.getElementById('override-title').value.trim();
+      if (ovTitle) currentData.title = ovTitle;
+      renderPreview(data);
+      setProgress(100);
+      setTimeout(() => setProgress(0), 600);
+      document.getElementById('pdf-btn-row').classList.remove('hidden');
+      toast('Notizen erfolgreich verarbeitet ✓');
+    } catch (e) {
+      toast('Fehler beim Verarbeiten: ' + e.message, true);
+      setProgress(0);
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove('loading');
+    }
+  }
+
+  async function downloadPDF() {
+    if (!currentData) return;
+    const btn = document.getElementById('pdf-btn');
+    btn.disabled = true;
+    btn.textContent = 'Wird erstellt…';
+    try {
+      const resp = await fetch('/generate-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(currentData),
+      });
+      if (!resp.ok) throw new Error(`Fehler: ${resp.status}`);
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Protokoll_${(currentData.title || 'Meeting').replace(/\s+/g,'_').slice(0,40)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast('PDF wurde heruntergeladen ✓');
+    } catch (e) {
+      toast('PDF-Fehler: ' + e.message, true);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> PDF herunterladen`;
+    }
+  }
+
+  function editable(id, path, isArray, idx, field) {
+    return `contenteditable="true" data-path="${path}" onblur="syncEdit(this,'${path}',${isArray},${idx},'${field}')"`;
+  }
+
+  function syncEdit(el, path, isArray, idx, field) {
+    if (!currentData) return;
+    const val = el.innerText.trim();
+    if (isArray && idx !== null && field) {
+      currentData[path][idx][field] = val;
+    } else if (isArray && idx !== null) {
+      currentData[path][idx] = val;
+    } else {
+      currentData[path] = val;
+    }
+  }
+
+  function renderPreview(d) {
+    const body = document.getElementById('preview-body');
+    let html = '';
+
+    // Title + meta
+    html += `<div style="margin-bottom:1.2rem">
+      <h2 style="font-size:1.3rem;font-weight:700;color:var(--navy);margin-bottom:.3rem"
+          contenteditable="true" onblur="currentData.title=this.innerText.trim()">${esc(d.title)}</h2>
+      <div style="display:flex;gap:1.2rem;flex-wrap:wrap;font-size:.82rem;color:var(--muted)">
+        ${d.date     ? `<span>📅 <span contenteditable="true" onblur="currentData.date=this.innerText.trim()">${esc(d.date)}</span></span>` : ''}
+        ${d.time     ? `<span>🕙 <span contenteditable="true" onblur="currentData.time=this.innerText.trim()">${esc(d.time)}</span></span>` : ''}
+        ${d.location ? `<span>📍 <span contenteditable="true" onblur="currentData.location=this.innerText.trim()">${esc(d.location)}</span></span>` : ''}
+      </div>
+    </div>`;
+
+    // Participants
+    if (d.participants?.length) {
+      html += section('Teilnehmer', '👥',
+        `<div class="chips">
+          ${d.participants.map((p,i) => `<span class="chip" contenteditable="true" onblur="currentData.participants[${i}]=this.innerText.trim()">${esc(p)}</span>`).join('')}
+          ${(d.absent||[]).map((p,i) => `<span class="chip absent" title="Entschuldigt" contenteditable="true" onblur="currentData.absent[${i}]=this.innerText.trim()">${esc(p)} (entschuld.)</span>`).join('')}
+        </div>`
+      );
+    }
+
+    // Summary
+    if (d.summary) {
+      html += section('Zusammenfassung', '📝',
+        `<div class="summary-box" contenteditable="true" onblur="currentData.summary=this.innerText.trim()">${esc(d.summary)}</div>`
+      );
+    }
+
+    // Topics
+    if (d.topics?.length) {
+      html += section('Besprochene Themen', '💬',
+        `<ul class="bullet-list">${d.topics.map((t,i) =>
+          `<li><span class="icon">•</span><span contenteditable="true" onblur="currentData.topics[${i}]=this.innerText.trim()">${esc(t)}</span></li>`
+        ).join('')}</ul>`
+      );
+    }
+
+    // Decisions
+    if (d.decisions?.length) {
+      html += section('Entscheidungen', '✅',
+        d.decisions.map((dec,i) =>
+          `<div class="decision">✓ <span contenteditable="true" onblur="currentData.decisions[${i}]=this.innerText.trim()">${esc(dec)}</span></div>`
+        ).join('')
+      );
+    }
+
+    // Action items
+    if (d.action_items?.length) {
+      html += section('Aufgaben', '📋',
+        `<table class="action-table">
+          <thead><tr><th>Aufgabe</th><th>Verantwortlich</th><th>Fällig bis</th></tr></thead>
+          <tbody>
+            ${d.action_items.map((a,i) => `
+              <tr>
+                <td contenteditable="true" onblur="currentData.action_items[${i}].task=this.innerText.trim()">${esc(a.task)}</td>
+                <td contenteditable="true" onblur="currentData.action_items[${i}].owner=this.innerText.trim()">${esc(a.owner||'–')}</td>
+                <td>${a.due_date ? `<span class="due-badge" contenteditable="true" onblur="currentData.action_items[${i}].due_date=this.innerText.trim()">${esc(a.due_date)}</span>` : '–'}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>`
+      );
+    }
+
+    // Open questions
+    if (d.open_questions?.length) {
+      html += section('Offene Fragen', '❓',
+        `<ul class="bullet-list">${d.open_questions.map((q,i) =>
+          `<li><span class="icon">?</span><span contenteditable="true" onblur="currentData.open_questions[${i}]=this.innerText.trim()">${esc(q)}</span></li>`
+        ).join('')}</ul>`
+      );
+    }
+
+    // Next steps
+    if (d.next_steps?.length) {
+      html += section('Nächste Schritte', '➡️',
+        `<ul class="bullet-list">${d.next_steps.map((s,i) =>
+          `<li><span class="icon">→</span><span contenteditable="true" onblur="currentData.next_steps[${i}]=this.innerText.trim()">${esc(s)}</span></li>`
+        ).join('')}</ul>`
+      );
+    }
+
+    // Next meeting
+    if (d.next_meeting) {
+      html += `<div class="next-meeting" style="margin-top:.5rem">
+        📅 Nächstes Meeting:&nbsp;
+        <span contenteditable="true" onblur="currentData.next_meeting=this.innerText.trim()">${esc(d.next_meeting)}</span>
+      </div>`;
+    }
+
+    body.innerHTML = html;
+  }
+
+  function section(title, icon, content) {
+    return `<div class="section">
+      <div class="section-title">${icon} ${title}</div>
+      ${content}
+    </div>`;
+  }
+
+  function esc(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function toast(msg, isError = false) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.background = isError ? '#C53030' : 'var(--navy)';
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3200);
+  }
+
+  // add .hidden helper
+  document.head.insertAdjacentHTML('beforeend','<style>.hidden{display:none!important}</style>');
+</script>
+</body>
+</html>

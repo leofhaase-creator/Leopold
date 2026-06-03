@@ -1,0 +1,19 @@
+Datum: 3. Juni 2026
+Uhrzeit: 10:00 - 11:30 Uhr
+Ort: Konferenzraum B2
+Projekt: Website-Relaunch Q3
+
+Teilnehmer: Anna Berger (Projektleiterin), Tom Fischer (Entwicklung), Sara Meier (Design), Klaus Hoffmann (Marketing)
+Entschuldigt: Peter Schulz (Vertrieb)
+
+---
+
+Wir haben den aktuellen Stand des Website-Relaunches besprochen. Tom hat erklärt, dass das neue CMS-Backend fertig ist, aber noch Tests ausstehen. Sara hat die neuen Designs für die Startseite und die Produktseiten präsentiert – generell positives Feedback, aber Klaus wünscht sich eine auffälligere Call-to-Action-Sektion auf der Startseite.
+
+Es gab eine kurze Diskussion über das Budget für externe Stockfotos. Anna hat entschieden, dass wir maximal 500€ ausgeben und prioritär eigene Fotos nutzen.
+
+Tom soll bis zum 10. Juni die Backend-Tests abschließen und einen Bericht erstellen. Sara überarbeitet die Startseite bis zum 7. Juni und schickt die neue Version an alle. Klaus soll bis 5. Juni eine Liste mit 5 gewünschten CTA-Texten liefern.
+
+Nächstes Meeting: 17. Juni, gleiche Uhrzeit. Dann soll die Staging-Umgebung stehen und wir machen ein erstes Review.
+
+Offene Frage: SEO-Agentur anfragen – Anna klärt das bis Ende der Woche.
