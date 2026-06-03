@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page {
+    size: A4;
+    margin: 0;
+    @bottom-right {
+      content: "Seite " counter(page) " von " counter(pages);
+      font-family: 'Segoe UI', sans-serif;
+      font-size: 8pt;
+      color: #94a3b8;
+      margin-right: 2cm;
+      margin-bottom: 0.8cm;
+    }
+    @bottom-left {
+      content: "Vertraulich · {{ generated_at }}";
+      font-family: 'Segoe UI', sans-serif;
+      font-size: 8pt;
+      color: #94a3b8;
+      margin-left: 2cm;
+      margin-bottom: 0.8cm;
+    }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 10pt;
+    color: #1e293b;
+    background: #ffffff;
+  }
+
+  /* ── HEADER ── */
+  .page-header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #1d4ed8 100%);
+    padding: 0;
+    height: 7cm;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .header-bg-circle {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.08;
+    background: white;
+  }
+  .circle-1 { width: 14cm; height: 14cm; top: -6cm; right: -3cm; }
+  .circle-2 { width: 8cm;  height: 8cm;  bottom: -4cm; left: 3cm; }
+  .circle-3 { width: 5cm;  height: 5cm;  top: 1cm; left: 8cm; }
+
+  .header-content {
+    position: relative;
+    z-index: 2;
+    padding: 1.2cm 2cm 1cm 2cm;
+  }
+
+  .logo-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 6px;
+    padding: 4px 12px;
+    color: rgba(255,255,255,0.9);
+    font-size: 8pt;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 0.5cm;
+  }
+
+  .meeting-title {
+    color: #ffffff;
+    font-size: 22pt;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 0.4cm;
+    max-width: 15cm;
+  }
+
+  .header-meta {
+    display: flex;
+    gap: 1.5cm;
+    flex-wrap: wrap;
+  }
+
+  .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: rgba(255,255,255,0.8);
+    font-size: 9pt;
+  }
+
+  .meta-icon {
+    width: 14px;
+    height: 14px;
+    opacity: 0.7;
+  }
+
+  /* ── ACCENT BAR ── */
+  .accent-bar {
+    height: 4px;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+  }
+
+  /* ── MAIN CONTENT ── */
+  .main {
+    padding: 0.8cm 2cm 1cm 2cm;
+  }
+
+  /* ── SUMMARY BOX ── */
+  .summary-box {
+    background: #f0f7ff;
+    border-left: 4px solid #3b82f6;
+    border-radius: 0 8px 8px 0;
+    padding: 0.5cm 0.7cm;
+    margin-bottom: 0.7cm;
+  }
+
+  .summary-box .section-label {
+    color: #3b82f6;
+    font-size: 7.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 4px;
+  }
+
+  .summary-box p {
+    color: #1e293b;
+    font-size: 10pt;
+    line-height: 1.6;
+  }
+
+  /* ── PARTICIPANTS CHIPS ── */
+  .participants-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 0.7cm;
+  }
+
+  .participant-chip {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-size: 8.5pt;
+    color: #1e40af;
+    font-weight: 500;
+  }
+
+  .moderator-chip {
+    background: #fef3c7;
+    border: 1px solid #fde68a;
+    color: #92400e;
+  }
+
+  /* ── TWO-COLUMN LAYOUT ── */
+  .two-col {
+    display: flex;
+    gap: 0.6cm;
+    margin-bottom: 0.6cm;
+  }
+
+  .col-left  { flex: 1.5; }
+  .col-right { flex: 1; }
+
+  /* ── SECTION ── */
+  .section {
+    margin-bottom: 0.6cm;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0.3cm;
+    padding-bottom: 4px;
+    border-bottom: 1.5px solid #e2e8f0;
+  }
+
+  .section-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .section-title {
+    font-size: 9pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #475569;
+  }
+
+  /* ── DISCUSSION POINTS ── */
+  .discussion-item {
+    margin-bottom: 0.35cm;
+    padding: 0.3cm 0.4cm;
+    background: #f8fafc;
+    border-radius: 6px;
+    border-left: 3px solid #e2e8f0;
+  }
+
+  .discussion-item .topic {
+    font-weight: 600;
+    font-size: 9.5pt;
+    color: #0f172a;
+    margin-bottom: 2px;
+  }
+
+  .discussion-item .content {
+    font-size: 9pt;
+    color: #475569;
+    line-height: 1.5;
+  }
+
+  .discussion-item .outcome-label {
+    font-size: 7.5pt;
+    font-weight: 700;
+    color: #3b82f6;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 3px;
+  }
+
+  .discussion-item .outcome {
+    font-size: 8.5pt;
+    color: #334155;
+    font-style: italic;
+  }
+
+  /* ── DECISIONS ── */
+  .decision-item {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin-bottom: 0.2cm;
+    padding: 0.2cm 0.35cm;
+    background: #f0fdf4;
+    border-radius: 5px;
+  }
+
+  .decision-check {
+    width: 16px;
+    height: 16px;
+    background: #22c55e;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .decision-text {
+    font-size: 9pt;
+    color: #166534;
+    line-height: 1.4;
+  }
+
+  /* ── OPEN ISSUES ── */
+  .issue-item {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin-bottom: 0.2cm;
+    padding: 0.2cm 0.35cm;
+    background: #fffbeb;
+    border-radius: 5px;
+  }
+
+  .issue-dot {
+    width: 8px;
+    height: 8px;
+    background: #f59e0b;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 3px;
+  }
+
+  .issue-text {
+    font-size: 9pt;
+    color: #92400e;
+    line-height: 1.4;
+  }
+
+  /* ── ACTION ITEMS TABLE ── */
+  .action-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.2cm;
+  }
+
+  .action-table thead tr {
+    background: #1e3a5f;
+  }
+
+  .action-table th {
+    padding: 6px 10px;
+    text-align: left;
+    font-size: 7.5pt;
+    font-weight: 700;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .action-table th:first-child { border-radius: 4px 0 0 0; }
+  .action-table th:last-child  { border-radius: 0 4px 0 0; }
+
+  .action-table tbody tr:nth-child(odd)  { background: #f8fafc; }
+  .action-table tbody tr:nth-child(even) { background: #ffffff; }
+
+  .action-table td {
+    padding: 7px 10px;
+    font-size: 9pt;
+    color: #334155;
+    vertical-align: top;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .action-table td:first-child {
+    font-weight: 500;
+    color: #0f172a;
+    max-width: 8cm;
+  }
+
+  .responsible-badge {
+    display: inline-block;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 4px;
+    padding: 1px 8px;
+    font-size: 8pt;
+    color: #1d4ed8;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .deadline-badge {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 4px;
+    font-size: 8pt;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .deadline-open {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    color: #c2410c;
+  }
+
+  .deadline-set {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: #15803d;
+  }
+
+  /* ── NEXT MEETING BOX ── */
+  .next-meeting-box {
+    background: linear-gradient(135deg, #1e3a5f, #1d4ed8);
+    border-radius: 8px;
+    padding: 0.4cm 0.6cm;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 0.4cm;
+  }
+
+  .next-meeting-icon {
+    width: 36px;
+    height: 36px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .next-meeting-label {
+    font-size: 7.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.6);
+  }
+
+  .next-meeting-date {
+    font-size: 11pt;
+    font-weight: 600;
+    color: #ffffff;
+  }
+
+  /* ── PAGE BREAK ── */
+  .page-break { page-break-before: always; }
+
+  /* ── EMPTY STATE ── */
+  .empty { color: #94a3b8; font-size: 9pt; font-style: italic; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ HEADER ═══════════════ -->
+<div class="page-header">
+  <div class="header-bg-circle circle-1"></div>
+  <div class="header-bg-circle circle-2"></div>
+  <div class="header-bg-circle circle-3"></div>
+  <div class="header-content">
+    <div class="logo-badge">{{ logo_text }}</div>
+    <div class="meeting-title">{{ meeting.title or 'Meeting Report' }}</div>
+    <div class="header-meta">
+      {% if meeting.date %}
+      <div class="meta-item">
+        <span>&#128197;</span>
+        <span>{{ meeting.date }}{% if meeting.time %} &nbsp;·&nbsp; {{ meeting.time }}{% endif %}</span>
+      </div>
+      {% endif %}
+      {% if meeting.location %}
+      <div class="meta-item">
+        <span>&#128205;</span>
+        <span>{{ meeting.location }}</span>
+      </div>
+      {% endif %}
+      {% if meeting.participants %}
+      <div class="meta-item">
+        <span>&#128101;</span>
+        <span>{{ meeting.participants | length }} Teilnehmer</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+<div class="accent-bar"></div>
+
+<!-- ═══════════════ MAIN ═══════════════ -->
+<div class="main">
+
+  <!-- Summary -->
+  {% if meeting.summary %}
+  <div class="summary-box">
+    <div class="section-label">Executive Summary</div>
+    <p>{{ meeting.summary }}</p>
+  </div>
+  {% endif %}
+
+  <!-- Participants -->
+  {% if meeting.participants %}
+  <div class="section">
+    <div class="section-header">
+      <div class="section-dot" style="background:#3b82f6"></div>
+      <div class="section-title">Teilnehmer</div>
+    </div>
+    <div class="participants-row">
+      {% if meeting.moderator %}
+      <span class="participant-chip moderator-chip">&#9733; {{ meeting.moderator }} (Moderation)</span>
+      {% endif %}
+      {% for p in meeting.participants %}
+      {% if p != meeting.moderator %}
+      <span class="participant-chip">{{ p }}</span>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Two-column: Discussion + Decisions/Issues -->
+  <div class="two-col">
+
+    <!-- Left: Discussion Points -->
+    <div class="col-left">
+      <div class="section">
+        <div class="section-header">
+          <div class="section-dot" style="background:#8b5cf6"></div>
+          <div class="section-title">Diskussionspunkte</div>
+        </div>
+        {% if meeting.discussion_points %}
+          {% for item in meeting.discussion_points %}
+          <div class="discussion-item">
+            <div class="topic">{{ loop.index }}. {{ item.topic }}</div>
+            <div class="content">{{ item.content }}</div>
+            {% if item.outcome %}
+            <div class="outcome-label">Ergebnis</div>
+            <div class="outcome">{{ item.outcome }}</div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        {% else %}
+          <p class="empty">Keine Diskussionspunkte erfasst.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Right: Decisions + Open Issues -->
+    <div class="col-right">
+
+      <!-- Decisions -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-dot" style="background:#22c55e"></div>
+          <div class="section-title">Entscheidungen</div>
+        </div>
+        {% if meeting.decisions %}
+          {% for d in meeting.decisions %}
+          <div class="decision-item">
+            <div class="decision-check">
+              <svg width="8" height="8" viewBox="0 0 10 10" fill="none">
+                <path d="M2 5l2.5 2.5L8 3" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="decision-text">{{ d }}</div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <p class="empty">Keine Entscheidungen erfasst.</p>
+        {% endif %}
+      </div>
+
+      <!-- Open Issues -->
+      {% if meeting.open_issues %}
+      <div class="section">
+        <div class="section-header">
+          <div class="section-dot" style="background:#f59e0b"></div>
+          <div class="section-title">Offene Punkte</div>
+        </div>
+        {% for issue in meeting.open_issues %}
+        <div class="issue-item">
+          <div class="issue-dot"></div>
+          <div class="issue-text">{{ issue }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+  <!-- Action Items -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-dot" style="background:#ef4444"></div>
+      <div class="section-title">Action Items</div>
+    </div>
+    {% if meeting.action_items %}
+    <table class="action-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Aufgabe</th>
+          <th>Verantwortlich</th>
+          <th>Deadline</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in meeting.action_items %}
+        <tr>
+          <td style="color:#94a3b8; font-size:8pt; width:0.5cm">{{ loop.index }}</td>
+          <td>{{ item.task }}</td>
+          <td>
+            {% if item.responsible %}
+            <span class="responsible-badge">{{ item.responsible }}</span>
+            {% else %}
+            <span class="empty">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% set dl = item.deadline | default('Offen') %}
+            {% if dl and dl | lower not in ['tbd', 'offen', 'open', ''] %}
+            <span class="deadline-badge deadline-set">{{ dl }}</span>
+            {% else %}
+            <span class="deadline-badge deadline-open">Offen</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p class="empty">Keine Action Items erfasst.</p>
+    {% endif %}
+  </div>
+
+  <!-- Next Meeting -->
+  {% if meeting.next_meeting and meeting.next_meeting not in ['', 'TBD', 'tbd'] %}
+  <div class="next-meeting-box">
+    <div class="next-meeting-icon">
+      <span style="font-size:16px">&#128197;</span>
+    </div>
+    <div>
+      <div class="next-meeting-label">Nächstes Meeting</div>
+      <div class="next-meeting-date">{{ meeting.next_meeting }}</div>
+    </div>
+  </div>
+  {% endif %}
+
+</div><!-- /main -->
+</body>
+</html>

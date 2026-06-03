@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meeting Notes · KI-Aufbereitung</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- ── TOP NAV ── -->
+<header class="topbar">
+  <div class="topbar-left">
+    <div class="brand-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="4" width="18" height="16" rx="2"/>
+        <path d="M7 9h10M7 13h6"/>
+      </svg>
+    </div>
+    <span class="brand-name">Meeting Notes</span>
+    <span class="brand-tag">KI-Aufbereitung</span>
+  </div>
+  <div class="topbar-right">
+    <div id="ollama-status" class="status-pill status-checking">
+      <span class="status-dot"></span>
+      <span id="status-text">Verbinde…</span>
+    </div>
+  </div>
+</header>
+
+<!-- ── STEP INDICATOR ── -->
+<div class="step-bar">
+  <div class="step-track">
+    <div class="step active" id="step-1">
+      <div class="step-num">1</div>
+      <span>Notizen eingeben</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step" id="step-2">
+      <div class="step-num">2</div>
+      <span>KI aufbereiten</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step" id="step-3">
+      <div class="step-num">3</div>
+      <span>PDF herunterladen</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN ── -->
+<main class="main-layout">
+
+  <!-- ════ PANEL 1: INPUT ════ -->
+  <section class="panel" id="panel-input">
+    <div class="panel-header">
+      <h2 class="panel-title">Meeting-Notizen</h2>
+      <p class="panel-sub">Füge deine rohen Notizen ein — die KI strukturiert sie automatisch.</p>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Notizen <span class="req">*</span></label>
+      <textarea id="notes-input" class="textarea" placeholder="Beispiel:&#10;&#10;Kick-off Produktteam, 03.06.2025, 10 Uhr&#10;Anwesend: Lisa, Tom, Sarah (Moderation)&#10;&#10;- Neue Feature-Roadmap Q3 besprochen&#10;- Tom übernimmt Backend bis 15.07.&#10;- Lisa entwirft Mockups bis 20.06.&#10;- Nächstes Meeting: 01.07. 10 Uhr&#10;- Offen: Budget für externe Designer klären"></textarea>
+    </div>
+
+    <div class="field-row">
+      <div class="field-group flex1">
+        <label class="field-label">Meeting-Titel (optional)</label>
+        <input id="title-input" class="input" type="text" placeholder="z.B. Q3 Kick-off Produktteam">
+      </div>
+      <div class="field-group" style="min-width:180px">
+        <label class="field-label">
+          Modell
+          <span class="tooltip-wrap">
+            <span class="info-icon">?</span>
+            <span class="tooltip-text">Ollama-Modell auf deinem Rechner. Standard: llama3.2</span>
+          </span>
+        </label>
+        <div class="select-wrap">
+          <select id="model-select" class="select">
+            <option value="llama3.2">llama3.2</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <button id="btn-process" class="btn btn-primary btn-full" onclick="processNotes()">
+      <span class="btn-icon">&#10024;</span>
+      Mit KI aufbereiten
+    </button>
+
+    <!-- Error display -->
+    <div id="error-box" class="error-box hidden">
+      <div class="error-icon">&#9888;</div>
+      <div id="error-text"></div>
+    </div>
+  </section>
+
+  <!-- ════ PANEL 2: PREVIEW ════ -->
+  <section class="panel panel-right" id="panel-preview">
+
+    <!-- Empty state -->
+    <div id="empty-state" class="empty-state">
+      <div class="empty-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+          <rect x="3" y="4" width="18" height="16" rx="2"/>
+          <path d="M7 9h10M7 13h6M7 17h4"/>
+          <circle cx="19" cy="19" r="4" fill="#1d4ed8" stroke="none"/>
+          <path d="M17.5 19h3M19 17.5v3" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h3>Noch keine Vorschau</h3>
+      <p>Gib deine Meeting-Notizen ein und klicke<br>auf <em>Mit KI aufbereiten</em>.</p>
+    </div>
+
+    <!-- Loading state -->
+    <div id="loading-state" class="loading-state hidden">
+      <div class="loader-rings">
+        <div class="ring ring1"></div>
+        <div class="ring ring2"></div>
+        <div class="ring ring3"></div>
+      </div>
+      <p class="loading-text">KI verarbeitet deine Notizen…</p>
+      <p class="loading-sub">Das kann 10–60 Sekunden dauern.</p>
+    </div>
+
+    <!-- Result -->
+    <div id="result-state" class="hidden">
+      <div class="result-header">
+        <div>
+          <h2 id="res-title" class="res-title"></h2>
+          <div id="res-meta" class="res-meta"></div>
+        </div>
+        <button class="btn btn-ghost" onclick="resetAll()" title="Neu beginnen">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+          </svg>
+          Neu
+        </button>
+      </div>
+
+      <div class="res-summary" id="res-summary"></div>
+
+      <!-- Participants -->
+      <div class="res-section">
+        <div class="res-section-head">
+          <span class="sec-dot" style="background:#3b82f6"></span>
+          Teilnehmer
+        </div>
+        <div id="res-participants" class="chips-row"></div>
+      </div>
+
+      <!-- Discussion -->
+      <div class="res-section">
+        <div class="res-section-head">
+          <span class="sec-dot" style="background:#8b5cf6"></span>
+          Diskussionspunkte
+        </div>
+        <div id="res-discussion"></div>
+      </div>
+
+      <!-- Two col: decisions + issues -->
+      <div class="res-two-col">
+        <div>
+          <div class="res-section-head">
+            <span class="sec-dot" style="background:#22c55e"></span>
+            Entscheidungen
+          </div>
+          <div id="res-decisions"></div>
+        </div>
+        <div>
+          <div class="res-section-head">
+            <span class="sec-dot" style="background:#f59e0b"></span>
+            Offene Punkte
+          </div>
+          <div id="res-issues"></div>
+        </div>
+      </div>
+
+      <!-- Action Items -->
+      <div class="res-section">
+        <div class="res-section-head">
+          <span class="sec-dot" style="background:#ef4444"></span>
+          Action Items
+        </div>
+        <div id="res-actions"></div>
+      </div>
+
+      <!-- Next meeting -->
+      <div id="res-next-wrap" class="hidden">
+        <div class="next-meeting-banner">
+          <span class="next-icon">&#128197;</span>
+          <div>
+            <div class="next-label">Nächstes Meeting</div>
+            <div id="res-next" class="next-date"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Download section -->
+      <div class="download-area">
+        <div class="download-field-row">
+          <div class="field-group flex1">
+            <label class="field-label">Logo-Text im PDF (optional)</label>
+            <input id="logo-input" class="input" type="text" placeholder="z.B. ACME Corp">
+          </div>
+        </div>
+        <button id="btn-pdf" class="btn btn-download btn-full" onclick="downloadPdf()">
+          <span class="btn-icon">&#128196;</span>
+          PDF herunterladen
+        </button>
+      </div>
+
+    </div><!-- /result-state -->
+
+  </section>
+
+</main>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
