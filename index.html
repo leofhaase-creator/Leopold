@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meeting Notes · KI-Aufbereitung</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+/* ── RESET ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:         #0f172a;
+  --surface:    #1e293b;
+  --surface2:   #263347;
+  --border:     #334155;
+  --text:       #e2e8f0;
+  --muted:      #94a3b8;
+  --accent:     #3b82f6;
+  --accent2:    #8b5cf6;
+  --green:      #22c55e;
+  --yellow:     #f59e0b;
+  --red:        #ef4444;
+  --r:          12px;
+}
+
+html { font-size: 15px; }
+body {
+  font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 28px; height: 60px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.topbar-left { display: flex; align-items: center; gap: 12px; }
+.brand-icon {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: white;
+}
+.brand-name { font-weight: 700; font-size: 1rem; }
+.brand-tag {
+  background: rgba(59,130,246,.15); border: 1px solid rgba(59,130,246,.3);
+  border-radius: 20px; padding: 2px 10px;
+  font-size: .7rem; color: var(--accent); font-weight: 600;
+  letter-spacing: .06em; text-transform: uppercase;
+}
+
+/* Status pill */
+.status-pill {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 20px;
+  font-size: .75rem; font-weight: 600; transition: all .3s;
+}
+.status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.status-checking    { background: rgba(148,163,184,.1); border: 1px solid var(--border); color: var(--muted); }
+.status-checking .status-dot { background: var(--muted); }
+.status-connected   { background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.3); color: #4ade80; }
+.status-connected .status-dot { background: var(--green); animation: pulse 2s infinite; }
+.status-disconnected{ background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3); color: #f87171; }
+.status-disconnected .status-dot { background: var(--red); }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.9)} }
+
+/* ── STEP BAR ── */
+.step-bar {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 0 28px; flex-shrink: 0;
+}
+.step-track {
+  display: flex; align-items: center; height: 52px;
+  gap: 0; max-width: 460px;
+}
+.step {
+  display: flex; align-items: center; gap: 8px;
+  color: var(--muted); font-size: .8rem; font-weight: 500;
+  transition: color .3s; white-space: nowrap;
+}
+.step.active { color: var(--accent); }
+.step.done   { color: var(--green); }
+.step-num {
+  width: 24px; height: 24px; border-radius: 50%;
+  border: 2px solid currentColor;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .7rem; font-weight: 700; flex-shrink: 0;
+  transition: all .3s;
+}
+.step.active .step-num { background: var(--accent); border-color: var(--accent); color: white; }
+.step.done   .step-num { background: var(--green);  border-color: var(--green);  color: white; }
+.step-line { flex: 1; height: 1px; background: var(--border); margin: 0 12px; min-width: 24px; }
+
+/* ── OLLAMA HINT ── */
+.ollama-hint {
+  background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.25);
+  border-radius: 8px; padding: 10px 14px; margin-bottom: 16px;
+  font-size: .8rem; color: #fcd34d; line-height: 1.6; display: none;
+}
+.ollama-hint code {
+  background: rgba(0,0,0,.3); padding: 1px 6px; border-radius: 4px;
+  font-family: monospace; font-size: .85em;
+}
+
+/* ── MAIN ── */
+.main-layout {
+  display: flex; flex: 1; gap: 0; overflow: hidden;
+  height: calc(100vh - 112px);
+}
+
+/* ── PANELS ── */
+.panel { flex: 1; padding: 28px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+.panel-right { background: var(--surface); border-left: 1px solid var(--border); }
+.panel-header { margin-bottom: 24px; }
+.panel-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 4px; }
+.panel-sub { font-size: .82rem; color: var(--muted); }
+
+/* ── FORM ── */
+.field-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.flex1 { flex: 1; }
+.field-label {
+  font-size: .78rem; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.req { color: var(--accent); }
+.textarea {
+  background: var(--surface2); border: 1.5px solid var(--border);
+  border-radius: var(--r); color: var(--text); font-family: inherit;
+  font-size: .9rem; line-height: 1.6; padding: 14px 16px;
+  resize: vertical; min-height: 220px; width: 100%;
+  transition: border-color .2s, box-shadow .2s;
+}
+.textarea:focus, .input:focus, .select:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(59,130,246,.15);
+}
+.textarea::placeholder, .input::placeholder { color: #475569; }
+.input {
+  background: var(--surface2); border: 1.5px solid var(--border);
+  border-radius: 8px; color: var(--text); font-family: inherit;
+  font-size: .9rem; padding: 10px 14px; width: 100%;
+  transition: border-color .2s, box-shadow .2s;
+}
+.field-row { display: flex; gap: 12px; align-items: flex-start; }
+.select-wrap { position: relative; }
+.select {
+  appearance: none; background: var(--surface2); border: 1.5px solid var(--border);
+  border-radius: 8px; color: var(--text); font-family: inherit;
+  font-size: .9rem; padding: 10px 36px 10px 14px; width: 100%; cursor: pointer;
+}
+.select-wrap::after {
+  content: ''; position: absolute; right: 12px; top: 50%;
+  transform: translateY(-50%); pointer-events: none;
+  border-left: 4px solid transparent; border-right: 4px solid transparent;
+  border-top: 5px solid var(--muted);
+}
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; padding: 11px 20px; border-radius: 8px; border: none;
+  font-family: inherit; font-size: .88rem; font-weight: 600;
+  cursor: pointer; transition: all .2s;
+}
+.btn-full { width: 100%; }
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), #6366f1);
+  color: white; box-shadow: 0 2px 12px rgba(59,130,246,.4);
+}
+.btn-primary:hover  { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(59,130,246,.5); }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.btn-download {
+  background: linear-gradient(135deg, #0f172a, #1e3a5f);
+  border: 1.5px solid rgba(59,130,246,.4); color: white;
+  box-shadow: 0 2px 12px rgba(0,0,0,.3);
+}
+.btn-download:hover { border-color: var(--accent); transform: translateY(-1px); }
+.btn-download:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.btn-ghost {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--muted); font-size: .78rem; padding: 6px 12px;
+}
+.btn-ghost:hover { color: var(--text); border-color: var(--accent); }
+.btn-icon { font-size: 1rem; }
+
+/* ── ERROR ── */
+.error-box {
+  display: flex; gap: 10px; align-items: flex-start;
+  background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.3);
+  border-radius: 8px; padding: 12px 14px; margin-top: 12px;
+  font-size: .85rem; color: #fca5a5; line-height: 1.5;
+}
+.error-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+/* ── TOOLTIP ── */
+.tooltip-wrap { position: relative; display: inline-flex; }
+.info-icon {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--border); color: var(--muted);
+  font-size: .65rem; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center; cursor: help;
+}
+.tooltip-text {
+  position: absolute; bottom: calc(100% + 6px); left: 50%;
+  transform: translateX(-50%);
+  background: #0f172a; border: 1px solid var(--border); border-radius: 6px;
+  padding: 6px 10px; font-size: .73rem; color: var(--text);
+  white-space: nowrap; pointer-events: none; opacity: 0;
+  transition: opacity .2s; z-index: 100;
+}
+.tooltip-wrap:hover .tooltip-text { opacity: 1; }
+
+/* ── EMPTY / LOADING / RESULT ── */
+.empty-state, .loading-state {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; height: 100%; min-height: 320px;
+  gap: 16px; text-align: center;
+}
+.empty-icon { color: var(--border); margin-bottom: 8px; }
+.empty-state h3 { font-size: 1.1rem; font-weight: 600; color: var(--muted); }
+.empty-state p  { font-size: .85rem; color: #475569; line-height: 1.6; }
+.empty-state em { color: var(--accent); font-style: normal; }
+
+.loader-rings { position: relative; width: 60px; height: 60px; }
+.ring {
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 3px solid transparent; animation: spin 1.4s linear infinite;
+}
+.ring1 { border-top-color: var(--accent); animation-duration: 1.2s; }
+.ring2 { border-right-color: var(--accent2); inset: 8px; animation-duration: 1.6s; animation-direction: reverse; }
+.ring3 { border-bottom-color: #ec4899; inset: 16px; animation-duration: 2s; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-weight: 600; color: var(--text); }
+.loading-sub  { font-size: .8rem; color: var(--muted); }
+
+/* ── RESULT ── */
+.result-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 16px; gap: 12px;
+}
+.res-title { font-size: 1.2rem; font-weight: 700; line-height: 1.3; }
+.res-meta {
+  font-size: .78rem; color: var(--muted); margin-top: 4px;
+  display: flex; flex-wrap: wrap; gap: 12px;
+}
+.res-summary {
+  background: rgba(59,130,246,.08); border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0; padding: 12px 16px;
+  font-size: .88rem; line-height: 1.65; margin-bottom: 20px;
+}
+.res-section { margin-bottom: 18px; }
+.res-section-head {
+  display: flex; align-items: center; gap: 8px;
+  font-size: .72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--muted);
+  margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border);
+}
+.sec-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.chips-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { padding: 3px 12px; border-radius: 20px; font-size: .78rem; font-weight: 500; }
+.chip-participant { background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.25); color: #93c5fd; }
+.chip-moderator   { background: rgba(245,158,11,.1);  border: 1px solid rgba(245,158,11,.3);  color: #fcd34d; }
+
+.disc-item { background: var(--surface2); border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; border-left: 3px solid var(--border); }
+.disc-topic   { font-weight: 600; font-size: .88rem; margin-bottom: 3px; }
+.disc-content { font-size: .83rem; color: var(--muted); line-height: 1.5; }
+.disc-outcome { font-size: .75rem; color: var(--accent); margin-top: 4px; font-style: italic; }
+
+.decision-item { display: flex; gap: 8px; align-items: flex-start; padding: 7px 10px; background: rgba(34,197,94,.06); border-radius: 6px; margin-bottom: 6px; }
+.decision-check { width: 16px; height: 16px; background: var(--green); border-radius: 50%; flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center; }
+.decision-text  { font-size: .83rem; color: #86efac; line-height: 1.4; }
+
+.issue-item { display: flex; gap: 8px; align-items: flex-start; padding: 7px 10px; background: rgba(245,158,11,.06); border-radius: 6px; margin-bottom: 6px; }
+.issue-dot  { width: 8px; height: 8px; background: var(--yellow); border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.issue-text { font-size: .83rem; color: #fcd34d; line-height: 1.4; }
+
+.action-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.action-table th { background: #1e3a5f; padding: 8px 10px; text-align: left; font-size: .7rem; font-weight: 700; color: #93c5fd; text-transform: uppercase; letter-spacing: .08em; }
+.action-table th:first-child { border-radius: 6px 0 0 0; }
+.action-table th:last-child  { border-radius: 0 6px 0 0; }
+.action-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--muted); }
+.action-table tr:last-child td { border-bottom: none; }
+.action-table td:nth-child(2) { color: var(--text); font-weight: 500; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: .72rem; font-weight: 600; }
+.badge-person        { background: rgba(59,130,246,.12); border: 1px solid rgba(59,130,246,.25); color: #93c5fd; }
+.badge-deadline-set  { background: rgba(34,197,94,.1);   border: 1px solid rgba(34,197,94,.25);  color: #86efac; }
+.badge-deadline-open { background: rgba(245,158,11,.1);  border: 1px solid rgba(245,158,11,.25); color: #fcd34d; }
+
+.res-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px; }
+
+.next-meeting-banner {
+  background: linear-gradient(135deg, #1e3a5f, #1d4ed8);
+  border-radius: 10px; padding: 14px 18px;
+  display: flex; align-items: center; gap: 14px; margin-bottom: 20px;
+}
+.next-icon  { font-size: 1.5rem; }
+.next-label { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: rgba(255,255,255,.55); }
+.next-date  { font-size: .95rem; font-weight: 600; color: white; }
+
+.download-area { border-top: 1px solid var(--border); padding-top: 18px; margin-top: 4px; }
+
+/* ── UTILITY ── */
+.hidden { display: none !important; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 860px) {
+  .main-layout { flex-direction: column; height: auto; overflow: visible; }
+  .panel-right { border-left: none; border-top: 1px solid var(--border); }
+  .res-two-col { grid-template-columns: 1fr; }
+  .field-row   { flex-direction: column; }
+}
+
+/* ══════════════════════════════════════════
+   PDF PRINT STYLESHEET
+   (wird nur beim PDF-Export sichtbar)
+══════════════════════════════════════════ */
+#pdf-render {
+  display: none;
+  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 10pt;
+  color: #1e293b;
+  background: white;
+  width: 210mm;
+  padding: 0;
+}
+
+#pdf-render .pdf-header {
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #1d4ed8 100%);
+  padding: 32px 40px 28px;
+  position: relative;
+  overflow: hidden;
+}
+
+#pdf-render .pdf-logo-badge {
+  display: inline-block;
+  background: rgba(255,255,255,.15);
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 6px; padding: 3px 10px;
+  color: rgba(255,255,255,.9);
+  font-size: 7pt; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase; margin-bottom: 10px;
+}
+
+#pdf-render .pdf-title {
+  color: white; font-size: 20pt; font-weight: 700;
+  line-height: 1.2; margin-bottom: 10px;
+}
+
+#pdf-render .pdf-meta {
+  display: flex; gap: 20px; flex-wrap: wrap;
+  color: rgba(255,255,255,.8); font-size: 8.5pt;
+}
+
+#pdf-render .accent-bar {
+  height: 4px;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+}
+
+#pdf-render .pdf-body { padding: 24px 40px 32px; }
+
+#pdf-render .pdf-summary {
+  background: #f0f7ff; border-left: 4px solid #3b82f6;
+  border-radius: 0 6px 6px 0; padding: 12px 16px;
+  font-size: 9.5pt; line-height: 1.6; color: #1e293b;
+  margin-bottom: 18px;
+}
+
+#pdf-render .pdf-section { margin-bottom: 16px; }
+
+#pdf-render .pdf-section-head {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 7pt; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .1em; color: #64748b;
+  padding-bottom: 4px; border-bottom: 1.5px solid #e2e8f0;
+  margin-bottom: 8px;
+}
+
+#pdf-render .pdf-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+
+#pdf-render .pdf-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 4px; }
+#pdf-render .pdf-chip {
+  padding: 2px 10px; border-radius: 20px; font-size: 8pt; font-weight: 500;
+  background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af;
+}
+#pdf-render .pdf-chip-mod {
+  background: #fef3c7; border-color: #fde68a; color: #92400e;
+}
+
+#pdf-render .pdf-two-col { display: flex; gap: 16px; }
+#pdf-render .pdf-col-l { flex: 1.5; }
+#pdf-render .pdf-col-r { flex: 1; }
+
+#pdf-render .disc-item {
+  background: #f8fafc; border-left: 3px solid #e2e8f0;
+  border-radius: 0 5px 5px 0; padding: 8px 12px; margin-bottom: 6px;
+}
+#pdf-render .disc-topic   { font-weight: 600; font-size: 9pt; color: #0f172a; margin-bottom: 2px; }
+#pdf-render .disc-content { font-size: 8.5pt; color: #475569; line-height: 1.5; }
+#pdf-render .disc-outcome { font-size: 7.5pt; color: #3b82f6; margin-top: 3px; font-style: italic; }
+
+#pdf-render .pdf-decision {
+  display: flex; gap: 7px; align-items: flex-start;
+  padding: 5px 9px; background: #f0fdf4; border-radius: 5px; margin-bottom: 5px;
+}
+#pdf-render .pdf-dec-check {
+  width: 14px; height: 14px; background: #22c55e; border-radius: 50%;
+  flex-shrink: 0; margin-top: 1px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8pt; color: white; font-weight: 700;
+}
+#pdf-render .pdf-dec-text { font-size: 8.5pt; color: #166534; line-height: 1.4; }
+
+#pdf-render .pdf-issue {
+  display: flex; gap: 7px; align-items: flex-start;
+  padding: 5px 9px; background: #fffbeb; border-radius: 5px; margin-bottom: 5px;
+}
+#pdf-render .pdf-issue-dot { width: 7px; height: 7px; background: #f59e0b; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+#pdf-render .pdf-issue-text{ font-size: 8.5pt; color: #92400e; line-height: 1.4; }
+
+#pdf-render .pdf-table { width: 100%; border-collapse: collapse; }
+#pdf-render .pdf-table th {
+  background: #1e3a5f; padding: 7px 9px; text-align: left;
+  font-size: 7pt; font-weight: 700; color: white;
+  text-transform: uppercase; letter-spacing: .08em;
+}
+#pdf-render .pdf-table th:first-child { border-radius: 4px 0 0 0; }
+#pdf-render .pdf-table th:last-child  { border-radius: 0 4px 0 0; }
+#pdf-render .pdf-table td {
+  padding: 7px 9px; border-bottom: 1px solid #e2e8f0;
+  font-size: 8.5pt; color: #334155; vertical-align: top;
+}
+#pdf-render .pdf-table tr:nth-child(odd) td { background: #f8fafc; }
+#pdf-render .pdf-badge {
+  display: inline-block; padding: 1px 7px; border-radius: 4px;
+  font-size: 7.5pt; font-weight: 600;
+}
+#pdf-render .pdf-badge-person { background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; }
+#pdf-render .pdf-badge-set    { background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; }
+#pdf-render .pdf-badge-open   { background: #fff7ed; border: 1px solid #fed7aa; color: #c2410c; }
+
+#pdf-render .pdf-next {
+  background: linear-gradient(135deg, #1e3a5f, #1d4ed8);
+  border-radius: 8px; padding: 12px 16px;
+  display: flex; align-items: center; gap: 12px; margin-top: 14px;
+}
+#pdf-render .pdf-next-label { font-size: 7pt; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: rgba(255,255,255,.55); }
+#pdf-render .pdf-next-date  { font-size: 10pt; font-weight: 600; color: white; }
+
+#pdf-render .pdf-footer {
+  margin-top: 20px; padding-top: 10px;
+  border-top: 1px solid #e2e8f0;
+  display: flex; justify-content: space-between;
+  font-size: 7.5pt; color: #94a3b8;
+}
+</style>
+</head>
+<body>
+
+<!-- ── TOPBAR ── -->
+<header class="topbar">
+  <div class="topbar-left">
+    <div class="brand-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="4" width="18" height="16" rx="2"/>
+        <path d="M7 9h10M7 13h6"/>
+      </svg>
+    </div>
+    <span class="brand-name">Meeting Notes</span>
+    <span class="brand-tag">KI-Aufbereitung</span>
+  </div>
+  <div class="topbar-right">
+    <div id="ollama-status" class="status-pill status-checking">
+      <span class="status-dot"></span>
+      <span id="status-text">Verbinde…</span>
+    </div>
+  </div>
+</header>
+
+<!-- ── STEP BAR ── -->
+<div class="step-bar">
+  <div class="step-track">
+    <div class="step active" id="step-1">
+      <div class="step-num">1</div><span>Notizen eingeben</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step" id="step-2">
+      <div class="step-num">2</div><span>KI aufbereiten</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step" id="step-3">
+      <div class="step-num">3</div><span>PDF herunterladen</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN ── -->
+<main class="main-layout">
+
+  <!-- ════ PANEL 1: INPUT ════ -->
+  <section class="panel" id="panel-input">
+    <div class="panel-header">
+      <h2 class="panel-title">Meeting-Notizen</h2>
+      <p class="panel-sub">Füge deine rohen Notizen ein — die KI strukturiert sie automatisch.</p>
+    </div>
+
+    <!-- Ollama hint (shown when disconnected) -->
+    <div id="ollama-hint" class="ollama-hint">
+      ⚠ Ollama nicht erreichbar. Starte Ollama in einem Terminal mit:<br>
+      <code>OLLAMA_ORIGINS="*" ollama serve</code><br>
+      Und lade einmalig ein Modell: <code>ollama pull llama3.2</code>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Notizen <span class="req">*</span></label>
+      <textarea id="notes-input" class="textarea" placeholder="Beispiel:&#10;&#10;Kick-off Produktteam, 03.06.2025, 10 Uhr&#10;Anwesend: Lisa, Tom, Sarah (Moderation)&#10;&#10;- Neue Feature-Roadmap Q3 besprochen&#10;- Tom übernimmt Backend bis 15.07.&#10;- Lisa entwirft Mockups bis 20.06.&#10;- Nächstes Meeting: 01.07. 10 Uhr&#10;- Offen: Budget für externe Designer klären"></textarea>
+    </div>
+
+    <div class="field-row">
+      <div class="field-group flex1">
+        <label class="field-label">Meeting-Titel (optional)</label>
+        <input id="title-input" class="input" type="text" placeholder="z.B. Q3 Kick-off Produktteam">
+      </div>
+      <div class="field-group" style="min-width:180px">
+        <label class="field-label">
+          Modell
+          <span class="tooltip-wrap">
+            <span class="info-icon">?</span>
+            <span class="tooltip-text">Ollama-Modell auf deinem Rechner</span>
+          </span>
+        </label>
+        <div class="select-wrap">
+          <select id="model-select" class="select">
+            <option value="llama3.2">llama3.2</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <button id="btn-process" class="btn btn-primary btn-full" onclick="processNotes()">
+      <span class="btn-icon">✨</span> Mit KI aufbereiten
+    </button>
+
+    <div id="error-box" class="error-box hidden">
+      <div class="error-icon">⚠</div>
+      <div id="error-text"></div>
+    </div>
+  </section>
+
+  <!-- ════ PANEL 2: PREVIEW ════ -->
+  <section class="panel panel-right" id="panel-preview">
+
+    <div id="empty-state" class="empty-state">
+      <div class="empty-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+          <rect x="3" y="4" width="18" height="16" rx="2"/>
+          <path d="M7 9h10M7 13h6M7 17h4"/>
+          <circle cx="19" cy="19" r="4" fill="#1d4ed8" stroke="none"/>
+          <path d="M17.5 19h3M19 17.5v3" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h3>Noch keine Vorschau</h3>
+      <p>Gib deine Meeting-Notizen ein und klicke<br>auf <em>Mit KI aufbereiten</em>.</p>
+    </div>
+
+    <div id="loading-state" class="loading-state hidden">
+      <div class="loader-rings">
+        <div class="ring ring1"></div>
+        <div class="ring ring2"></div>
+        <div class="ring ring3"></div>
+      </div>
+      <p class="loading-text">KI verarbeitet deine Notizen…</p>
+      <p class="loading-sub">Das kann 10–60 Sekunden dauern.</p>
+    </div>
+
+    <div id="result-state" class="hidden">
+      <div class="result-header">
+        <div>
+          <h2 id="res-title" class="res-title"></h2>
+          <div id="res-meta" class="res-meta"></div>
+        </div>
+        <button class="btn btn-ghost" onclick="resetAll()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+          </svg>
+          Neu
+        </button>
+      </div>
+
+      <div class="res-summary" id="res-summary"></div>
+
+      <div class="res-section">
+        <div class="res-section-head"><span class="sec-dot" style="background:#3b82f6"></span>Teilnehmer</div>
+        <div id="res-participants" class="chips-row"></div>
+      </div>
+
+      <div class="res-section">
+        <div class="res-section-head"><span class="sec-dot" style="background:#8b5cf6"></span>Diskussionspunkte</div>
+        <div id="res-discussion"></div>
+      </div>
+
+      <div class="res-two-col">
+        <div>
+          <div class="res-section-head"><span class="sec-dot" style="background:#22c55e"></span>Entscheidungen</div>
+          <div id="res-decisions"></div>
+        </div>
+        <div>
+          <div class="res-section-head"><span class="sec-dot" style="background:#f59e0b"></span>Offene Punkte</div>
+          <div id="res-issues"></div>
+        </div>
+      </div>
+
+      <div class="res-section">
+        <div class="res-section-head"><span class="sec-dot" style="background:#ef4444"></span>Action Items</div>
+        <div id="res-actions"></div>
+      </div>
+
+      <div id="res-next-wrap" class="hidden">
+        <div class="next-meeting-banner">
+          <span class="next-icon">📅</span>
+          <div>
+            <div class="next-label">Nächstes Meeting</div>
+            <div id="res-next" class="next-date"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="download-area">
+        <div class="field-group" style="margin-bottom:12px">
+          <label class="field-label">Logo-Text im PDF (optional)</label>
+          <input id="logo-input" class="input" type="text" placeholder="z.B. ACME Corp">
+        </div>
+        <button id="btn-pdf" class="btn btn-download btn-full" onclick="downloadPdf()">
+          <span class="btn-icon">📄</span> PDF herunterladen
+        </button>
+      </div>
+    </div>
+
+  </section>
+</main>
+
+<!-- ════ HIDDEN PDF RENDER AREA ════ -->
+<div id="pdf-render"></div>
+
+<script>
+/* ══ CONFIG ══ */
+const OLLAMA = 'http://localhost:11434';
+
+let currentData = null;
+
+/* ══ INIT ══ */
+document.addEventListener('DOMContentLoaded', () => {
+  checkOllama();
+  loadModels();
+});
+
+/* ══ OLLAMA STATUS ══ */
+async function checkOllama() {
+  const pill  = document.getElementById('ollama-status');
+  const label = document.getElementById('status-text');
+  const hint  = document.getElementById('ollama-hint');
+  try {
+    const r = await fetch(`${OLLAMA}/api/tags`);
+    if (r.ok) {
+      pill.className = 'status-pill status-connected';
+      label.textContent = 'Ollama verbunden';
+      hint.style.display = 'none';
+      return;
+    }
+  } catch {}
+  pill.className = 'status-pill status-disconnected';
+  label.textContent = 'Ollama nicht erreichbar';
+  hint.style.display = 'block';
+}
+
+async function loadModels() {
+  try {
+    const r = await fetch(`${OLLAMA}/api/tags`);
+    if (!r.ok) return;
+    const data = await r.json();
+    const models = (data.models || []).map(m => m.name);
+    if (!models.length) return;
+    const sel = document.getElementById('model-select');
+    sel.innerHTML = models.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+  } catch {}
+}
+
+/* ══ PROCESS ══ */
+async function processNotes() {
+  const notes = document.getElementById('notes-input').value.trim();
+  const model = document.getElementById('model-select').value;
+  const title = document.getElementById('title-input').value.trim();
+
+  if (!notes) { showError('Bitte gib Meeting-Notizen ein.'); return; }
+  hideError();
+  setLoading(true);
+  setStep(2);
+
+  const today = new Date().toLocaleDateString('de-DE');
+  const prompt = `Du bist ein professioneller Meeting-Assistent. Analysiere die folgenden Meeting-Notizen und strukturiere sie in ein klares, professionelles Format.
+
+Gib die Antwort AUSSCHLIESSLICH als valides JSON zurück — keine Erklärungen, kein Markdown, kein Codeblock.
+
+JSON-Schema:
+{
+  "title": "Meeting-Titel (kurz und prägnant)",
+  "date": "Datum im Format DD.MM.YYYY (aus Notizen extrahieren oder '${today}')",
+  "time": "Uhrzeit wenn vorhanden, sonst ''",
+  "location": "Ort oder 'Remote' wenn online, sonst ''",
+  "participants": ["Name 1", "Name 2"],
+  "moderator": "Name des Moderators wenn erkennbar, sonst ''",
+  "summary": "Executive Summary in 3-4 prägnanten Sätzen",
+  "discussion_points": [{"topic": "Thema", "content": "Was wurde diskutiert", "outcome": "Ergebnis oder ''"}],
+  "decisions": ["Entscheidung 1"],
+  "action_items": [{"task": "Aufgabe", "responsible": "Person", "deadline": "Deadline oder 'Offen'"}],
+  "open_issues": ["Offene Frage 1"],
+  "next_meeting": "Datum/Zeit des nächsten Meetings wenn erwähnt, sonst ''"
+}
+
+Meeting-Notizen:
+${notes}`;
+
+  try {
+    const r = await fetch(`${OLLAMA}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, prompt, stream: false })
+    });
+    if (!r.ok) throw new Error(`Ollama Fehler ${r.status}`);
+
+    const raw = (await r.json()).response || '';
+    const clean = raw.replace(/```(?:json)?\s*/g, '').replace(/```/g, '').trim();
+    const match = clean.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('KI-Antwort enthielt kein gültiges JSON.\n\nAntwort:\n' + raw.slice(0, 400));
+
+    const data = JSON.parse(match[0]);
+    if (title) data.title = title;
+    currentData = data;
+    renderResult(data);
+    setStep(3);
+  } catch (err) {
+    showError(err.message);
+    setStep(1);
+  } finally {
+    setLoading(false);
+  }
+}
+
+/* ══ RENDER RESULT ══ */
+function renderResult(d) {
+  document.getElementById('res-title').textContent = d.title || 'Meeting Report';
+
+  const meta = [];
+  if (d.date) meta.push(`<span>📅 ${esc(d.date)}${d.time ? ' · ' + esc(d.time) : ''}</span>`);
+  if (d.location) meta.push(`<span>📍 ${esc(d.location)}</span>`);
+  document.getElementById('res-meta').innerHTML = meta.join('');
+
+  document.getElementById('res-summary').textContent = d.summary || '';
+
+  const partEl = document.getElementById('res-participants');
+  partEl.innerHTML = '';
+  if (d.moderator) partEl.innerHTML += `<span class="chip chip-moderator">★ ${esc(d.moderator)} (Mod.)</span>`;
+  (d.participants || []).filter(p => p !== d.moderator).forEach(p => {
+    partEl.innerHTML += `<span class="chip chip-participant">${esc(p)}</span>`;
+  });
+  if (!partEl.innerHTML) partEl.innerHTML = '<span style="color:#475569;font-size:.82rem">Keine Teilnehmer erfasst</span>';
+
+  document.getElementById('res-discussion').innerHTML =
+    (d.discussion_points || []).map(item => `
+      <div class="disc-item">
+        <div class="disc-topic">${esc(item.topic)}</div>
+        <div class="disc-content">${esc(item.content)}</div>
+        ${item.outcome ? `<div class="disc-outcome">→ ${esc(item.outcome)}</div>` : ''}
+      </div>`).join('') || '<p style="color:#475569;font-size:.82rem">Keine Diskussionspunkte</p>';
+
+  document.getElementById('res-decisions').innerHTML =
+    (d.decisions || []).map(dec => `
+      <div class="decision-item">
+        <div class="decision-check"><svg width="8" height="8" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <div class="decision-text">${esc(dec)}</div>
+      </div>`).join('') || '<p style="color:#475569;font-size:.82rem">Keine Entscheidungen</p>';
+
+  document.getElementById('res-issues').innerHTML =
+    (d.open_issues || []).map(i => `
+      <div class="issue-item">
+        <div class="issue-dot"></div>
+        <div class="issue-text">${esc(i)}</div>
+      </div>`).join('') || '<p style="color:#475569;font-size:.82rem">Keine offenen Punkte</p>';
+
+  const actEl = document.getElementById('res-actions');
+  if ((d.action_items || []).length) {
+    actEl.innerHTML = `<table class="action-table">
+      <thead><tr><th>#</th><th>Aufgabe</th><th>Verantwortlich</th><th>Deadline</th></tr></thead>
+      <tbody>${(d.action_items || []).map((item, i) => {
+        const open = !item.deadline || ['tbd','offen','open',''].includes((item.deadline||'').toLowerCase());
+        return `<tr>
+          <td style="color:#475569">${i+1}</td>
+          <td>${esc(item.task)}</td>
+          <td>${item.responsible ? `<span class="badge badge-person">${esc(item.responsible)}</span>` : '—'}</td>
+          <td><span class="badge ${open ? 'badge-deadline-open' : 'badge-deadline-set'}">${open ? 'Offen' : esc(item.deadline)}</span></td>
+        </tr>`;
+      }).join('')}</tbody></table>`;
+  } else {
+    actEl.innerHTML = '<p style="color:#475569;font-size:.82rem">Keine Action Items</p>';
+  }
+
+  const nextWrap = document.getElementById('res-next-wrap');
+  if (d.next_meeting && !['','tbd'].includes(d.next_meeting.toLowerCase())) {
+    document.getElementById('res-next').textContent = d.next_meeting;
+    nextWrap.classList.remove('hidden');
+  } else {
+    nextWrap.classList.add('hidden');
+  }
+
+  document.getElementById('empty-state').classList.add('hidden');
+  document.getElementById('loading-state').classList.add('hidden');
+  document.getElementById('result-state').classList.remove('hidden');
+}
+
+/* ══ PDF EXPORT ══ */
+async function downloadPdf() {
+  if (!currentData) return;
+  const d = currentData;
+  const logoText = document.getElementById('logo-input').value.trim() || 'Meeting Report';
+  const btn = document.getElementById('btn-pdf');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="btn-icon">⏳</span> Generiere PDF…';
+
+  try {
+    const container = document.getElementById('pdf-render');
+    container.style.display = 'block';
+    container.innerHTML = buildPdfHtml(d, logoText);
+
+    const titleSafe = (d.title || 'meeting').replace(/[^a-zA-Z0-9_\- ]/g,'').trim().replace(/\s+/g,'_') || 'meeting_report';
+    const dateStr = new Date().toISOString().slice(0,10).replace(/-/g,'');
+    const filename = `${titleSafe}_${dateStr}.pdf`;
+
+    await html2pdf().set({
+      margin: 0,
+      filename,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    }).from(container).save();
+
+    container.style.display = 'none';
+    container.innerHTML = '';
+  } catch (err) {
+    alert('PDF-Fehler: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span class="btn-icon">📄</span> PDF herunterladen';
+  }
+}
+
+function buildPdfHtml(d, logoText) {
+  const generatedAt = new Date().toLocaleString('de-DE');
+  const metaParts = [];
+  if (d.date) metaParts.push(`📅 ${d.date}${d.time ? ' · ' + d.time : ''}`);
+  if (d.location) metaParts.push(`📍 ${d.location}`);
+  if (d.participants?.length) metaParts.push(`👥 ${d.participants.length} Teilnehmer`);
+
+  const participants = (d.participants || []).map(p => {
+    const isMod = p === d.moderator;
+    return `<span class="pdf-chip${isMod ? ' pdf-chip-mod' : ''}">${isMod ? '★ ' : ''}${esc(p)}${isMod ? ' (Mod.)' : ''}</span>`;
+  }).join('');
+
+  const discussion = (d.discussion_points || []).map((item, i) => `
+    <div class="disc-item">
+      <div class="disc-topic">${i+1}. ${esc(item.topic)}</div>
+      <div class="disc-content">${esc(item.content)}</div>
+      ${item.outcome ? `<div class="disc-outcome">→ ${esc(item.outcome)}</div>` : ''}
+    </div>`).join('') || '<p style="color:#94a3b8;font-size:8pt">Keine Diskussionspunkte</p>';
+
+  const decisions = (d.decisions || []).map(dec => `
+    <div class="pdf-decision">
+      <div class="pdf-dec-check">✓</div>
+      <div class="pdf-dec-text">${esc(dec)}</div>
+    </div>`).join('') || '<p style="color:#94a3b8;font-size:8pt">Keine</p>';
+
+  const issues = (d.open_issues || []).map(i => `
+    <div class="pdf-issue">
+      <div class="pdf-issue-dot"></div>
+      <div class="pdf-issue-text">${esc(i)}</div>
+    </div>`).join('') || '<p style="color:#94a3b8;font-size:8pt">Keine</p>';
+
+  const actionRows = (d.action_items || []).map((item, i) => {
+    const open = !item.deadline || ['tbd','offen','open',''].includes((item.deadline||'').toLowerCase());
+    return `<tr>
+      <td style="color:#94a3b8">${i+1}</td>
+      <td style="font-weight:500;color:#0f172a">${esc(item.task)}</td>
+      <td>${item.responsible ? `<span class="pdf-badge pdf-badge-person">${esc(item.responsible)}</span>` : '—'}</td>
+      <td><span class="pdf-badge ${open ? 'pdf-badge-open' : 'pdf-badge-set'}">${open ? 'Offen' : esc(item.deadline)}</span></td>
+    </tr>`;
+  }).join('');
+
+  const nextMtg = d.next_meeting && !['','tbd'].includes(d.next_meeting.toLowerCase())
+    ? `<div class="pdf-next"><span style="font-size:18pt">📅</span>
+        <div><div class="pdf-next-label">Nächstes Meeting</div><div class="pdf-next-date">${esc(d.next_meeting)}</div></div>
+       </div>` : '';
+
+  return `
+    <div class="pdf-header">
+      <div class="pdf-logo-badge">${esc(logoText)}</div>
+      <div class="pdf-title">${esc(d.title || 'Meeting Report')}</div>
+      ${metaParts.length ? `<div class="pdf-meta">${metaParts.map(m => `<span>${m}</span>`).join('')}</div>` : ''}
+    </div>
+    <div class="accent-bar"></div>
+    <div class="pdf-body">
+      ${d.summary ? `<div class="pdf-summary">${esc(d.summary)}</div>` : ''}
+
+      ${(d.participants||[]).length ? `
+      <div class="pdf-section">
+        <div class="pdf-section-head"><span class="pdf-dot" style="background:#3b82f6"></span>Teilnehmer</div>
+        <div class="pdf-chips">${participants}</div>
+      </div>` : ''}
+
+      <div class="pdf-two-col">
+        <div class="pdf-col-l">
+          <div class="pdf-section">
+            <div class="pdf-section-head"><span class="pdf-dot" style="background:#8b5cf6"></span>Diskussionspunkte</div>
+            ${discussion}
+          </div>
+        </div>
+        <div class="pdf-col-r">
+          <div class="pdf-section">
+            <div class="pdf-section-head"><span class="pdf-dot" style="background:#22c55e"></span>Entscheidungen</div>
+            ${decisions}
+          </div>
+          <div class="pdf-section">
+            <div class="pdf-section-head"><span class="pdf-dot" style="background:#f59e0b"></span>Offene Punkte</div>
+            ${issues}
+          </div>
+        </div>
+      </div>
+
+      <div class="pdf-section">
+        <div class="pdf-section-head"><span class="pdf-dot" style="background:#ef4444"></span>Action Items</div>
+        ${actionRows ? `<table class="pdf-table">
+          <thead><tr><th>#</th><th>Aufgabe</th><th>Verantwortlich</th><th>Deadline</th></tr></thead>
+          <tbody>${actionRows}</tbody>
+        </table>` : '<p style="color:#94a3b8;font-size:8pt">Keine Action Items erfasst.</p>'}
+      </div>
+
+      ${nextMtg}
+
+      <div class="pdf-footer">
+        <span>Vertraulich</span>
+        <span>Generiert am ${generatedAt}</span>
+      </div>
+    </div>`;
+}
+
+/* ══ HELPERS ══ */
+function resetAll() {
+  currentData = null;
+  document.getElementById('result-state').classList.add('hidden');
+  document.getElementById('loading-state').classList.add('hidden');
+  document.getElementById('empty-state').classList.remove('hidden');
+  setStep(1);
+}
+
+function setLoading(on) {
+  const btn = document.getElementById('btn-process');
+  btn.disabled = on;
+  btn.innerHTML = on ? '<span class="btn-icon">⏳</span> Verarbeite…' : '<span class="btn-icon">✨</span> Mit KI aufbereiten';
+  document.getElementById('loading-state').classList.toggle('hidden', !on);
+  if (on) {
+    document.getElementById('empty-state').classList.add('hidden');
+    document.getElementById('result-state').classList.add('hidden');
+  }
+}
+
+function setStep(n) {
+  [1,2,3].forEach(i => {
+    const el = document.getElementById(`step-${i}`);
+    el.classList.remove('active','done');
+    if (i < n) el.classList.add('done');
+    else if (i === n) el.classList.add('active');
+  });
+}
+
+function showError(msg) {
+  document.getElementById('error-text').textContent = msg;
+  document.getElementById('error-box').classList.remove('hidden');
+}
+
+function hideError() {
+  document.getElementById('error-box').classList.add('hidden');
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
