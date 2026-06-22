@@ -491,8 +491,8 @@ function weekStats(habitId) {
   let done = 0;
   for (let i = 0; i < 7; i++) {
     const d = new Date(ws); d.setDate(ws.getDate() + i);
-    const ds = d.toISOString().slice(0,10);
-    const y = d.getFullYear(), m = d.getMonth();
+    const y = d.getFullYear(), m = d.getMonth(), day = d.getDate();
+    const ds = `${getMonthKey(y,m)}-${String(day).padStart(2,'0')}`;
     if (getChecks(habitId, y, m).has(ds)) done++;
   }
   return { done, total: 7 };
@@ -594,7 +594,7 @@ function renderWeekly() {
     const c = colorOf(h);
     const cells = days.map(d => {
       const y = d.getFullYear(), m = d.getMonth(), day = d.getDate();
-      const ds = d.toISOString().slice(0,10);
+      const ds = `${getMonthKey(y,m)}-${String(day).padStart(2,'0')}`;
       const checked  = getChecks(h.id, y, m).has(ds);
       const isToday  = d.getTime() === today.getTime();
       const isFuture = isDateFuture(d);
