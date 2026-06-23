@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reflexions-Chat</title>
+  <style>
+    /* ── Reset & Basis ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f5f3ef;
+      --surface:   #ffffff;
+      --border:    #e0dbd3;
+      --accent:    #6b7c6e;   /* gedämpftes Grün */
+      --accent-dk: #4e5c51;
+      --text:      #2d2d2d;
+      --text-muted:#7a7a7a;
+      --user-bg:   #dce8df;
+      --bot-bg:    #f0ede8;
+      --crisis-bg: #fff3cd;
+      --crisis-bdr:#e6a817;
+      --radius:    12px;
+      --font: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0.9rem 1.4rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    header h1 { font-size: 1.1rem; font-weight: 600; color: var(--accent-dk); }
+    header .subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .header-actions { display: flex; gap: 0.5rem; }
+
+    /* ── Buttons (allgemein) ── */
+    button {
+      cursor: pointer;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.4rem 0.85rem;
+      font-size: 0.8rem;
+      background: var(--surface);
+      color: var(--text);
+      transition: background 0.15s, border-color 0.15s;
+    }
+    button:hover { background: var(--bg); border-color: var(--accent); }
+    button.primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    button.primary:hover { background: var(--accent-dk); }
+    button.danger { border-color: #d9534f; color: #d9534f; }
+    button.danger:hover { background: #fdf0f0; }
+
+    /* ── Haupt-Layout ── */
+    main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── Chatverlauf ── */
+    #chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.2rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+      scroll-behavior: smooth;
+    }
+
+    /* ── Nachrichten-Bubbles ── */
+    .msg {
+      max-width: 72%;
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius);
+      line-height: 1.55;
+      font-size: 0.92rem;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+    .msg.user {
+      align-self: flex-end;
+      background: var(--user-bg);
+      border-bottom-right-radius: 3px;
+    }
+    .msg.bot {
+      align-self: flex-start;
+      background: var(--bot-bg);
+      border-bottom-left-radius: 3px;
+    }
+    .msg.crisis-hint {
+      background: var(--crisis-bg);
+      border-left: 3px solid var(--crisis-bdr);
+      font-size: 0.85rem;
+    }
+    .msg .sender {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 0.3rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    /* Markdown-ähnliche Formatierung für Bot-Nachrichten */
+    .msg.bot strong { font-weight: 600; }
+    .msg.bot hr { border: none; border-top: 1px solid var(--border); margin: 0.5rem 0; }
+    .msg.bot a { color: var(--accent-dk); }
+
+    /* ── Typing-Indikator ── */
+    #typing {
+      align-self: flex-start;
+      background: var(--bot-bg);
+      padding: 0.6rem 1rem;
+      border-radius: var(--radius);
+      border-bottom-left-radius: 3px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      display: none;
+    }
+    #typing span {
+      display: inline-block;
+      animation: blink 1.2s infinite;
+    }
+    #typing span:nth-child(2) { animation-delay: 0.2s; }
+    #typing span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink {
+      0%, 80%, 100% { opacity: 0.2; }
+      40%           { opacity: 1;   }
+    }
+
+    /* ── Eingabebereich ── */
+    #input-area {
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      padding: 0.8rem 1rem;
+      display: flex;
+      gap: 0.6rem;
+      align-items: flex-end;
+      flex-shrink: 0;
+    }
+    #user-input {
+      flex: 1;
+      resize: none;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.6rem 0.9rem;
+      font-family: inherit;
+      font-size: 0.92rem;
+      line-height: 1.4;
+      max-height: 140px;
+      overflow-y: auto;
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    #user-input:focus { border-color: var(--accent); }
+    #send-btn { padding: 0.6rem 1.1rem; }
+
+    /* ── Gedächtnis-Panel (Seitenleiste) ── */
+    #memory-panel {
+      width: 280px;
+      border-left: 1px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: width 0.2s;
+    }
+    #memory-panel.collapsed { width: 0; overflow: hidden; border-left: none; }
+
+    #memory-header {
+      padding: 0.9rem 1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent-dk);
+      flex-shrink: 0;
+    }
+
+    #memory-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.8rem 1rem;
+      font-size: 0.82rem;
+      line-height: 1.5;
+    }
+    .mem-section { margin-bottom: 1rem; }
+    .mem-section h4 {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 0.35rem;
+    }
+    .mem-section ul { list-style: disc; padding-left: 1.1rem; }
+    .mem-section li { margin-bottom: 0.2rem; }
+    .mem-empty { color: var(--text-muted); font-style: italic; font-size: 0.8rem; }
+    .mem-updated { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.5rem; }
+
+    #memory-actions {
+      padding: 0.7rem 1rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    /* ── Disclaimer-Banner ── */
+    #disclaimer {
+      background: #f0ede8;
+      border-bottom: 1px solid var(--border);
+      padding: 0.5rem 1rem;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      text-align: center;
+      flex-shrink: 0;
+    }
+    #disclaimer a { color: var(--accent-dk); }
+
+    /* ── Responsiv ── */
+    @media (max-width: 600px) {
+      #memory-panel { display: none; }
+      .msg { max-width: 90%; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Reflexions-Chat</h1>
+    <div class="subtitle">Persönlicher Gesprächsbegleiter · Keine Therapie</div>
+  </div>
+  <div class="header-actions">
+    <button onclick="toggleMemory()" id="mem-toggle-btn">Notizen ▶</button>
+    <button onclick="clearHistory()" class="danger">Gespräch löschen</button>
+  </div>
+</header>
+
+<div id="disclaimer">
+  ⚠️ Dieser Chat ersetzt <strong>keine</strong> professionelle psychologische oder psychiatrische Behandlung.
+  Bei akuten Krisen: <strong>Telefonseelsorge 0800 111 0 111</strong> (kostenlos, 24/7) · Notruf <strong>112</strong>
+</div>
+
+<main>
+  <!-- Chatverlauf -->
+  <div id="chat-area">
+    <div id="messages">
+      <div class="msg bot">
+        <div class="sender">Begleiter</div>
+        Hallo, ich freue mich, dass du hier bist. Ich bin dein persönlicher Gesprächsbegleiter für Selbstreflexion. Du kannst mir alles erzählen, was dich beschäftigt – ich höre aufmerksam zu und helfe dir, Gedanken und Gefühle zu erkunden.<br><br>
+        <em>Denk daran: Ich bin kein Therapeut. Bei ernsthaften Belastungen empfehle ich professionelle Unterstützung.</em><br><br>
+        Wie geht es dir gerade?
+      </div>
+    </div>
+    <div id="typing"><span>●</span><span>●</span><span>●</span></div>
+    <div id="input-area">
+      <textarea id="user-input" placeholder="Was beschäftigt dich?" rows="1"></textarea>
+      <button class="primary" id="send-btn" onclick="sendMessage()">Senden</button>
+    </div>
+  </div>
+
+  <!-- Gedächtnis-Panel -->
+  <aside id="memory-panel" class="collapsed">
+    <div id="memory-header">
+      <span>Gespeicherte Notizen</span>
+      <button onclick="loadMemory()" title="Aktualisieren" style="padding:0.2rem 0.5rem;font-size:0.75rem;">↻</button>
+    </div>
+    <div id="memory-content">
+      <div class="mem-empty">Lade Notizen…</div>
+    </div>
+    <div id="memory-actions">
+      <button onclick="clearMemory()" class="danger" style="flex:1;">Notizen löschen</button>
+    </div>
+  </aside>
+</main>
+
+<script>
+  const messagesEl = document.getElementById('messages');
+  const inputEl    = document.getElementById('user-input');
+  const typingEl   = document.getElementById('typing');
+  const sendBtn    = document.getElementById('send-btn');
+
+  // Textfeld automatisch wachsen lassen
+  inputEl.addEventListener('input', () => {
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 140) + 'px';
+  });
+
+  // Enter = Senden (Shift+Enter = Zeilenumbruch)
+  inputEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
+
+  function scrollToBottom() {
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function appendMessage(role, text) {
+    const div = document.createElement('div');
+    div.className = 'msg ' + role;
+    const label = role === 'user' ? 'Du' : 'Begleiter';
+    // Einfaches Markdown: **fett**, Trennlinien, Zeilenumbrüche
+    const formatted = text
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/---/g, '<hr>')
+      .replace(/\n/g, '<br>');
+    div.innerHTML = `<div class="sender">${label}</div>${formatted}`;
+    messagesEl.appendChild(div);
+    scrollToBottom();
+    return div;
+  }
+
+  async function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text) return;
+
+    appendMessage('user', text);
+    inputEl.value = '';
+    inputEl.style.height = 'auto';
+    sendBtn.disabled = true;
+    typingEl.style.display = 'block';
+    messagesEl.appendChild(typingEl);
+    scrollToBottom();
+
+    try {
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text }),
+      });
+      const data = await res.json();
+      typingEl.style.display = 'none';
+
+      if (data.error) {
+        appendMessage('bot', '⚠️ Fehler: ' + data.error);
+      } else {
+        appendMessage('bot', data.reply);
+        // Gedächtnis-Panel aktualisieren, falls geöffnet
+        if (!document.getElementById('memory-panel').classList.contains('collapsed')) {
+          loadMemory();
+        }
+      }
+    } catch (err) {
+      typingEl.style.display = 'none';
+      appendMessage('bot', '⚠️ Verbindungsfehler. Bitte prüfe, ob die App läuft.');
+    }
+    sendBtn.disabled = false;
+    inputEl.focus();
+  }
+
+  // ── Gedächtnis-Panel ────────────────────────────────────────────────────────
+
+  let memoryVisible = false;
+
+  function toggleMemory() {
+    memoryVisible = !memoryVisible;
+    const panel = document.getElementById('memory-panel');
+    const btn   = document.getElementById('mem-toggle-btn');
+    if (memoryVisible) {
+      panel.classList.remove('collapsed');
+      btn.textContent = 'Notizen ◀';
+      loadMemory();
+    } else {
+      panel.classList.add('collapsed');
+      btn.textContent = 'Notizen ▶';
+    }
+  }
+
+  async function loadMemory() {
+    const content = document.getElementById('memory-content');
+    try {
+      const res  = await fetch('/memory');
+      const mem  = await res.json();
+      content.innerHTML = renderMemory(mem);
+    } catch {
+      content.innerHTML = '<div class="mem-empty">Fehler beim Laden.</div>';
+    }
+  }
+
+  function renderMemory(mem) {
+    const sections = [
+      { key: 'topics',           label: 'Themen' },
+      { key: 'concerns',         label: 'Sorgen & Herausforderungen' },
+      { key: 'important_people', label: 'Wichtige Personen' },
+      { key: 'progress',         label: 'Fortschritte & Erkenntnisse' },
+    ];
+    let html = '';
+    let hasContent = false;
+
+    for (const s of sections) {
+      const items = mem[s.key] || [];
+      if (items.length === 0) continue;
+      hasContent = true;
+      html += `<div class="mem-section">
+        <h4>${s.label}</h4>
+        <ul>${items.map(i => `<li>${escHtml(i)}</li>`).join('')}</ul>
+      </div>`;
+    }
+
+    if (mem.raw_summary) {
+      hasContent = true;
+      html += `<div class="mem-section">
+        <h4>Zusammenfassung</h4>
+        <p>${escHtml(mem.raw_summary)}</p>
+      </div>`;
+    }
+
+    if (!hasContent) {
+      html = '<div class="mem-empty">Noch keine Notizen gespeichert.</div>';
+    }
+
+    if (mem.last_updated) {
+      html += `<div class="mem-updated">Zuletzt aktualisiert: ${mem.last_updated}</div>`;
+    }
+    return html;
+  }
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  async function clearMemory() {
+    if (!confirm('Alle gespeicherten Notizen löschen?')) return;
+    await fetch('/memory/clear', { method: 'POST' });
+    loadMemory();
+  }
+
+  async function clearHistory() {
+    if (!confirm('Den aktuellen Gesprächsverlauf löschen?')) return;
+    await fetch('/history/clear', { method: 'POST' });
+    messagesEl.innerHTML = '';
+    appendMessage('bot',
+      'Gespräch gelöscht. Wie geht es dir – womit möchtest du beginnen?');
+  }
+
+  // Fokus beim Start
+  inputEl.focus();
+</script>
+</body>
+</html>
