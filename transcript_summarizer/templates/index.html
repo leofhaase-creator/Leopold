@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Transkript-Zusammenfasser</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #fafafa;
+    --card: #ffffff;
+    --text: #1a1a1a;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --accent: #4f46e5;
+    --accent-hover: #4338ca;
+    --highlight-bg: #fef9c3;
+    --highlight-border: #eab308;
+    --radius: 10px;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 4rem;
+  }
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-bottom: 2rem;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: 0.4rem;
+  }
+  .hint {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 0.4rem;
+  }
+  input[type="password"],
+  input[type="text"],
+  textarea {
+    width: 100%;
+    font-family: inherit;
+    font-size: 0.95rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--text);
+    resize: vertical;
+  }
+  input:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  }
+  textarea#transcript {
+    min-height: 220px;
+  }
+  .field {
+    margin-bottom: 1.25rem;
+  }
+  .field:last-child { margin-bottom: 0; }
+  button {
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 0.6rem 1.25rem;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent);
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  button:hover:not(:disabled) { background: var(--accent-hover); }
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .ask-row {
+    display: flex;
+    gap: 0.6rem;
+  }
+  .ask-row input { flex: 1; }
+  .error {
+    color: #b91c1c;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.85rem;
+    margin-top: 0.75rem;
+    display: none;
+  }
+  .error.show { display: block; }
+  .result {
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+    display: none;
+  }
+  .result.show { display: block; }
+  .result h2 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--muted);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+  .summary-text {
+    font-size: 0.95rem;
+    white-space: pre-wrap;
+  }
+  .qa-item {
+    padding: 1rem 0;
+    border-top: 1px solid var(--border);
+  }
+  .qa-item:first-child { border-top: none; padding-top: 0; }
+  .qa-question {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 0.4rem;
+  }
+  .qa-answer {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
+  .qa-quote {
+    font-size: 0.85rem;
+    font-style: italic;
+    color: #78350f;
+    background: var(--highlight-bg);
+    border-left: 3px solid var(--highlight-border);
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+  }
+  .qa-quote-label {
+    font-style: normal;
+    font-weight: 600;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: #92400e;
+    display: block;
+    margin-bottom: 0.25rem;
+  }
+  .qa-no-quote {
+    font-size: 0.82rem;
+    color: var(--muted);
+    font-style: italic;
+  }
+  .spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    margin-right: 0.4rem;
+    vertical-align: -2px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #qa-section { display: none; }
+  #qa-section.show { display: block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Transkript-Zusammenfasser</h1>
+  <p class="subtitle">Transkript einfügen, zusammenfassen lassen und Fragen dazu stellen.</p>
+
+  <div class="card">
+    <div class="field">
+      <label for="api-key">Anthropic API Key</label>
+      <input type="password" id="api-key" placeholder="sk-ant-..." autocomplete="off" />
+      <p class="hint">Der Key wird nur im Browser gehalten und direkt für die Anfrage verwendet, nicht gespeichert.</p>
+    </div>
+    <div class="field">
+      <label for="transcript">Transkript</label>
+      <textarea id="transcript" placeholder="Transkript hier einfügen ..."></textarea>
+    </div>
+    <div class="field">
+      <button id="summarize-btn">Zusammenfassen</button>
+    </div>
+    <div class="error" id="summarize-error"></div>
+    <div class="result" id="summary-result">
+      <h2>Zusammenfassung</h2>
+      <p class="summary-text" id="summary-text"></p>
+    </div>
+  </div>
+
+  <div class="card" id="qa-section">
+    <h2 style="font-size:1rem; margin-bottom:1rem;">Fragen zum Transkript</h2>
+    <div class="ask-row">
+      <input type="text" id="question" placeholder="Was wurde zu Thema X gesagt?" />
+      <button id="ask-btn">Fragen</button>
+    </div>
+    <div class="error" id="ask-error"></div>
+    <div id="qa-history"></div>
+  </div>
+</div>
+
+<script>
+const apiKeyInput = document.getElementById('api-key');
+const transcriptInput = document.getElementById('transcript');
+const summarizeBtn = document.getElementById('summarize-btn');
+const summarizeError = document.getElementById('summarize-error');
+const summaryResult = document.getElementById('summary-result');
+const summaryText = document.getElementById('summary-text');
+const qaSection = document.getElementById('qa-section');
+const questionInput = document.getElementById('question');
+const askBtn = document.getElementById('ask-btn');
+const askError = document.getElementById('ask-error');
+const qaHistory = document.getElementById('qa-history');
+
+function showError(el, message) {
+  el.textContent = message;
+  el.classList.add('show');
+}
+function hideError(el) {
+  el.classList.remove('show');
+}
+function setLoading(btn, loading, label) {
+  btn.disabled = loading;
+  btn.innerHTML = loading ? `<span class="spinner"></span>${label}` : label;
+}
+
+summarizeBtn.addEventListener('click', async () => {
+  hideError(summarizeError);
+  const api_key = apiKeyInput.value.trim();
+  const transcript = transcriptInput.value.trim();
+
+  if (!api_key) return showError(summarizeError, 'Bitte gib deinen Anthropic API Key ein.');
+  if (!transcript) return showError(summarizeError, 'Bitte füge ein Transkript ein.');
+
+  setLoading(summarizeBtn, true, 'Zusammenfassen');
+  try {
+    const res = await fetch('/api/summarize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ api_key, transcript }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showError(summarizeError, data.error || 'Ein Fehler ist aufgetreten.');
+      return;
+    }
+    summaryText.textContent = data.summary;
+    summaryResult.classList.add('show');
+    qaSection.classList.add('show');
+  } catch (e) {
+    showError(summarizeError, 'Verbindung zum Server fehlgeschlagen.');
+  } finally {
+    setLoading(summarizeBtn, false, 'Zusammenfassen');
+  }
+});
+
+askBtn.addEventListener('click', async () => {
+  hideError(askError);
+  const api_key = apiKeyInput.value.trim();
+  const transcript = transcriptInput.value.trim();
+  const question = questionInput.value.trim();
+
+  if (!api_key) return showError(askError, 'Bitte gib deinen Anthropic API Key ein.');
+  if (!transcript) return showError(askError, 'Bitte füge ein Transkript ein.');
+  if (!question) return showError(askError, 'Bitte gib eine Frage ein.');
+
+  setLoading(askBtn, true, 'Fragen');
+  try {
+    const res = await fetch('/api/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ api_key, transcript, question }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showError(askError, data.error || 'Ein Fehler ist aufgetreten.');
+      return;
+    }
+
+    const item = document.createElement('div');
+    item.className = 'qa-item';
+    const quoteHtml = data.found
+      ? `<div class="qa-quote"><span class="qa-quote-label">Fundstelle im Transkript</span>${escapeHtml(data.quote)}</div>`
+      : `<p class="qa-no-quote">Keine eindeutige Textstelle im Transkript gefunden.</p>`;
+    item.innerHTML = `
+      <div class="qa-question">${escapeHtml(question)}</div>
+      <div class="qa-answer">${escapeHtml(data.answer)}</div>
+      ${quoteHtml}
+    `;
+    qaHistory.prepend(item);
+    questionInput.value = '';
+  } catch (e) {
+    showError(askError, 'Verbindung zum Server fehlgeschlagen.');
+  } finally {
+    setLoading(askBtn, false, 'Fragen');
+  }
+});
+
+questionInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') askBtn.click();
+});
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+</script>
+</body>
+</html>
