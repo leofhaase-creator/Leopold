@@ -3,3 +3,9 @@ __pycache__/
 *.pyo
 .env
 *.pdf
+.venv/
+
+# Personal lecture notes dropped into the assistant's notes/ folder should
+# never be committed - only the bundled example stays tracked.
+lecture_assistant/notes/*
+!lecture_assistant/notes/Beispiel_Vorlesung_01.txt

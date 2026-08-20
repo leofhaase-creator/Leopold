@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vorlesungs-Assistent</title>
+<style>
+  :root {
+    --bg: #05070f;
+    --panel: #0c1120;
+    --panel-2: #0f1730;
+    --border: #1c2744;
+    --blue: #3b82f6;
+    --blue-light: #60a5fa;
+    --blue-dim: #1e3a8a;
+    --text: #e6ebf5;
+    --text-dim: #8b96b3;
+    --ok: #34d399;
+    --err: #f87171;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(circle at 20% 0%, #0a1330 0%, var(--bg) 55%);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  header {
+    padding: 28px 32px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  header h1 span { color: var(--blue-light); }
+  header .sub { color: var(--text-dim); font-size: 13px; }
+
+  .key-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .key-row input {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    width: 220px;
+  }
+  .key-row input:focus { outline: 1px solid var(--blue); }
+  .key-status { font-size: 12px; color: var(--text-dim); }
+
+  main {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 20px;
+    padding: 24px 32px 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  @media (max-width: 860px) {
+    main { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: linear-gradient(180deg, var(--panel) 0%, #090d18 100%);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+  }
+  .panel h2 {
+    margin: 0 0 12px;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .panel h2 button.refresh {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--blue-light);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 11px;
+    cursor: pointer;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .panel h2 button.refresh:hover { border-color: var(--blue); }
+
+  .hint {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.5;
+    margin-bottom: 14px;
+    padding: 10px;
+    background: var(--panel-2);
+    border-radius: 8px;
+    border: 1px dashed var(--border);
+  }
+  .hint code {
+    color: var(--blue-light);
+    background: rgba(59,130,246,0.12);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  ul.file-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  ul.file-list li {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 10px;
+    font-size: 13px;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  ul.file-list li .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  ul.file-list li .meta { color: var(--text-dim); font-size: 11px; white-space: nowrap; }
+  .empty { color: var(--text-dim); font-size: 13px; padding: 8px 2px; }
+
+  .tabs { display: flex; gap: 6px; margin-bottom: 16px; }
+  .tabs button {
+    flex: 1;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .tabs button.active {
+    background: linear-gradient(135deg, var(--blue-dim), var(--blue));
+    color: #fff;
+    border-color: var(--blue);
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  select, textarea, button.action {
+    font-family: inherit;
+    font-size: 14px;
+  }
+  select {
+    width: 100%;
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 10px;
+    margin-bottom: 10px;
+  }
+  textarea {
+    width: 100%;
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    resize: vertical;
+    min-height: 64px;
+    margin-bottom: 10px;
+  }
+  button.action {
+    background: linear-gradient(135deg, var(--blue-dim), var(--blue));
+    color: #fff;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  button.action:hover { filter: brightness(1.1); }
+  button.action:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .result {
+    margin-top: 16px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 14px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+  }
+  .error { color: var(--err); font-size: 13px; margin-top: 10px; }
+
+  .source-tag {
+    color: var(--blue-light);
+    background: rgba(59,130,246,0.14);
+    border: 1px solid rgba(59,130,246,0.35);
+    padding: 1px 6px;
+    border-radius: 5px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .qa-item {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    background: var(--panel-2);
+  }
+  .qa-item .q { color: var(--blue-light); font-weight: 600; margin-bottom: 8px; font-size: 14px; }
+  .qa-item .a { font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+  .qa-item .src-list {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .qa-item .src-label { color: var(--text-dim); font-size: 11px; margin-right: 4px; }
+
+  .loading { color: var(--text-dim); font-size: 13px; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Vorlesungs-<span>Assistent</span></h1>
+    <div class="sub">Nimmt deine Mitschriften entgegen, fasst sie zusammen und beantwortet Fragen &mdash; immer mit Quellenangabe.</div>
+  </div>
+  <div class="key-row">
+    <input type="password" id="apiKey" placeholder="Anthropic API Key" autocomplete="off">
+    <span class="key-status" id="keyStatus">nicht gespeichert</span>
+  </div>
+</header>
+
+<main>
+  <div class="panel">
+    <h2>Mitschriften <button class="refresh" id="refreshBtn">Aktualisieren</button></h2>
+    <div class="hint">
+      Lege Notizen/Transkripte einfach als <code>.txt</code>, <code>.md</code>
+      <span id="pdfHint"></span> in den Ordner <code>lecture_assistant/notes/</code> &mdash;
+      sie erscheinen hier automatisch, ohne Neustart.
+    </div>
+    <ul class="file-list" id="fileList"></ul>
+  </div>
+
+  <div class="panel">
+    <div class="tabs">
+      <button class="active" data-tab="summarize">Zusammenfassen</button>
+      <button data-tab="ask">Frage stellen</button>
+    </div>
+
+    <div class="tab-content active" id="tab-summarize">
+      <select id="summarizeTarget"></select>
+      <button class="action" id="summarizeBtn">Zusammenfassen</button>
+      <div id="summarizeLoading" class="loading" style="display:none;">Erstelle Zusammenfassung &hellip;</div>
+      <div id="summarizeError" class="error"></div>
+      <div id="summarizeResult" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="tab-content" id="tab-ask">
+      <textarea id="question" placeholder="Was möchtest du zu deinen Mitschriften wissen?"></textarea>
+      <button class="action" id="askBtn">Fragen</button>
+      <div id="askLoading" class="loading" style="display:none;">Suche in den Mitschriften &hellip;</div>
+      <div id="askError" class="error"></div>
+      <div id="qaHistory" style="margin-top:16px;"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+const apiKeyInput = document.getElementById('apiKey');
+const keyStatus = document.getElementById('keyStatus');
+const savedKey = localStorage.getItem('anthropic_api_key');
+if (savedKey) { apiKeyInput.value = savedKey; keyStatus.textContent = 'lokal gespeichert'; }
+apiKeyInput.addEventListener('input', () => {
+  if (apiKeyInput.value.trim()) {
+    localStorage.setItem('anthropic_api_key', apiKeyInput.value.trim());
+    keyStatus.textContent = 'lokal gespeichert';
+  } else {
+    localStorage.removeItem('anthropic_api_key');
+    keyStatus.textContent = 'nicht gespeichert';
+  }
+});
+
+document.querySelectorAll('.tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// Turn "(Quelle: datei.txt, Abschnitt 2)" style citations into highlighted pills.
+function highlightSources(text) {
+  const escaped = escapeHtml(text);
+  return escaped.replace(/\(Quelle:[^)]*\)/g, m => `<span class="source-tag">${m}</span>`);
+}
+
+async function loadNotes() {
+  const res = await fetch('/api/notes');
+  const data = await res.json();
+  const list = document.getElementById('fileList');
+  const select = document.getElementById('summarizeTarget');
+  document.getElementById('pdfHint').textContent = data.pdf_support ? 'oder .pdf' : '';
+
+  list.innerHTML = '';
+  if (!data.notes.length) {
+    list.innerHTML = '<div class="empty">Noch keine Dateien gefunden.</div>';
+  } else {
+    data.notes.forEach(n => {
+      const li = document.createElement('li');
+      li.innerHTML = `<span class="name">${escapeHtml(n.name)}</span><span class="meta">${(n.chars/1000).toFixed(1)}k Zeichen</span>`;
+      list.appendChild(li);
+    });
+  }
+
+  const prev = select.value;
+  select.innerHTML = '<option value="all">Alle Dateien (Gesamtüberblick)</option>' +
+    data.notes.map(n => `<option value="${escapeHtml(n.name)}">${escapeHtml(n.name)}</option>`).join('');
+  if ([...select.options].some(o => o.value === prev)) select.value = prev;
+}
+
+document.getElementById('refreshBtn').addEventListener('click', loadNotes);
+loadNotes();
+setInterval(loadNotes, 20000);
+
+document.getElementById('summarizeBtn').addEventListener('click', async () => {
+  const apiKey = apiKeyInput.value.trim();
+  const errBox = document.getElementById('summarizeError');
+  const resultBox = document.getElementById('summarizeResult');
+  const loading = document.getElementById('summarizeLoading');
+  errBox.textContent = '';
+  resultBox.style.display = 'none';
+  if (!apiKey) { errBox.textContent = 'Bitte gib deinen Anthropic API Key ein.'; return; }
+
+  loading.style.display = 'block';
+  try {
+    const res = await fetch('/api/summarize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ api_key: apiKey, file: document.getElementById('summarizeTarget').value }),
+    });
+    const data = await res.json();
+    if (!res.ok) { errBox.textContent = data.error || 'Fehler bei der Zusammenfassung.'; return; }
+    let html = highlightSources(data.summary);
+    if (data.truncated) html += '<div style="margin-top:10px;color:var(--text-dim);font-size:12px;">Hinweis: Material war zu lang und wurde gekürzt.</div>';
+    resultBox.innerHTML = html;
+    resultBox.style.display = 'block';
+  } catch (e) {
+    errBox.textContent = 'Verbindungsfehler: ' + e.message;
+  } finally {
+    loading.style.display = 'none';
+  }
+});
+
+document.getElementById('askBtn').addEventListener('click', async () => {
+  const apiKey = apiKeyInput.value.trim();
+  const question = document.getElementById('question').value.trim();
+  const errBox = document.getElementById('askError');
+  const loading = document.getElementById('askLoading');
+  errBox.textContent = '';
+  if (!apiKey) { errBox.textContent = 'Bitte gib deinen Anthropic API Key ein.'; return; }
+  if (!question) { errBox.textContent = 'Bitte gib eine Frage ein.'; return; }
+
+  loading.style.display = 'block';
+  try {
+    const res = await fetch('/api/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ api_key: apiKey, question }),
+    });
+    const data = await res.json();
+    if (!res.ok) { errBox.textContent = data.error || 'Fehler bei der Antwort.'; return; }
+
+    const item = document.createElement('div');
+    item.className = 'qa-item';
+    const srcChips = (data.sources || []).map(s => `<span class="source-tag">${escapeHtml(s)}</span>`).join(' ');
+    item.innerHTML = `
+      <div class="q">${escapeHtml(question)}</div>
+      <div class="a">${highlightSources(data.answer)}</div>
+      <div class="src-list"><span class="src-label">Durchsuchte Abschnitte:</span>${srcChips}</div>
+    `;
+    document.getElementById('qaHistory').prepend(item);
+    document.getElementById('question').value = '';
+  } catch (e) {
+    errBox.textContent = 'Verbindungsfehler: ' + e.message;
+  } finally {
+    loading.style.display = 'none';
+  }
+});
+
+document.getElementById('question').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    document.getElementById('askBtn').click();
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+Vorlesung: Einführung in neuronale Netze
+Datum: 15. April 2026
+Dozent: Prof. Dr. Weber
+
+Heute haben wir die Grundlagen künstlicher neuronaler Netze besprochen. Ein
+neuronales Netz besteht aus Schichten von Neuronen: einer Eingabeschicht,
+mindestens einer versteckten Schicht und einer Ausgabeschicht. Jedes Neuron
+berechnet eine gewichtete Summe seiner Eingaben und wendet anschließend eine
+Aktivierungsfunktion an, zum Beispiel ReLU oder Sigmoid.
+
+Das Training erfolgt über den Backpropagation-Algorithmus in Kombination mit
+Gradientenabstieg. Dabei wird der Fehler zwischen Vorhersage und tatsächlichem
+Wert (die Loss-Funktion) rückwärts durch das Netz propagiert, um die Gewichte
+schrittweise anzupassen.
+
+Wichtiger Punkt aus der Diskussion: Overfitting tritt auf, wenn ein Modell die
+Trainingsdaten zu genau lernt und dadurch schlecht auf neue Daten generalisiert.
+Gegenmaßnahmen sind unter anderem Dropout, Regularisierung (L1/L2) und eine
+größere/vielfältigere Trainingsmenge.
+
+Zum Abschluss gab es ein Beispiel mit dem MNIST-Datensatz (handgeschriebene
+Ziffern), an dem ein einfaches Netz mit zwei versteckten Schichten über 95%
+Genauigkeit erreichte.
+
+Prüfungsrelevant: Aufbau eines Netzes, Backpropagation-Herleitung, Overfitting
+und Gegenmaßnahmen.
